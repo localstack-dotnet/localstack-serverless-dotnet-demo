@@ -1,0 +1,26 @@
+FROM mcr.microsoft.com/dotnet/core/sdk:2.1
+
+RUN apt-get upgrade -yq && apt-get install -yq curl
+RUN curl -sL https://deb.nodesource.com/setup_8.x | bash - && apt-get install -yq nodejs
+
+ENV WAITFORIT_VERSION="v2.4.1"
+RUN curl -o /usr/local/bin/waitforit -sSL https://github.com/maxcnunes/waitforit/releases/download/$WAITFORIT_VERSION/waitforit-linux_amd64 \
+    && chmod +x /usr/local/bin/waitforit
+
+RUN npm install -g serverless
+
+RUN mkdir -p /usr/src/profile-lambda-csharp
+
+COPY aws-csharp.csproj /usr/src/profile-lambda-csharp
+COPY Handler.cs /usr/src/profile-lambda-csharp
+COPY serverless.yml /usr/src/profile-lambda-csharp
+
+WORKDIR /usr/src/profile-lambda-csharp
+
+RUN npm install serverless-localstack
+
+COPY . .
+
+RUN chmod +x ./build.sh && ./build.sh
+
+CMD waitforit -address=http://"$LOCAL_STACK_HOST":4571 -timeout=120 -- serverless deploy --verbose --stage $SERVERLESS_STAGE

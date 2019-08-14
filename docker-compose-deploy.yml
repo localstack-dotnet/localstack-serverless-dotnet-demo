@@ -1,0 +1,45 @@
+version: '2.1'
+
+services:
+  profile-deployer:
+    privileged: true
+    build: 
+      context: ./src/profile-lambda-csharp/
+      dockerfile: Dockerfile.deploy
+    environment:
+      - AWS_ACCESS_KEY_ID
+      - AWS_SECRET_ACCESS_KEY
+      - LOCAL_STACK_HOST
+      - SERVERLESS_STAGE
+    networks:
+      - build
+
+  localstack:
+    privileged: true
+    image: localstack/localstack:0.10.1.2
+    ports:
+      - '4567-4585:4567-4585'
+      - '4590-4593:4590-4593'
+      - '${PORT_WEB_UI-8080}:${PORT_WEB_UI-8080}'
+    environment:
+      - DEFAULT_REGION=eu-central-1
+      - SERVICES=${SERVICES- }
+      - DEBUG="1"
+      - DATA_DIR=/tmp/localstack/data
+      - PORT_WEB_UI=${PORT_WEB_UI- }
+      - LAMBDA_EXECUTOR=docker-reuse
+      - KINESIS_ERROR_PROBABILITY=${KINESIS_ERROR_PROBABILITY- }
+      - DOCKER_HOST=unix:///var/run/docker.sock
+    volumes:
+      - "localstack-vol:/tmp/localstack"
+      - "/var/run/docker.sock:/var/run/docker.sock"
+    networks:
+      - build
+
+volumes:
+  localstack-vol:
+
+networks:
+  build:
+    name: build
+    driver: bridge

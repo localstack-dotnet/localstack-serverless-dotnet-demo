@@ -1,0 +1,33 @@
+service: profile
+
+plugins:
+  - serverless-localstack
+
+custom:
+  localstack:
+    host: http://${env:LOCAL_STACK_HOST}
+    stages:
+      - local
+  stages:
+    - local
+    - prod
+
+provider:
+  name: aws
+  runtime: dotnetcore2.1
+  region: eu-central-1
+  stage: ${opt:stage, 'local'}
+
+package:
+  individually: true
+
+functions:
+  hello:
+    handler: CsharpHandlers::AwsDotnetCsharp.Handler::CreateProfileAsync
+    package:
+      artifact: artifact/profile-lambda-csharp.zip
+    events:
+    - http:
+        path: profile
+        method: POST
+        cors: true

@@ -1,0 +1,12 @@
+{
+  "files.associations": {
+    "*[Dd]ockerfile*": "dockerfile",
+    "docker-compose*": "yaml"
+  },
+
+  "files.exclude": {
+    "**/obj": true,
+    "**/bin": true,
+    "**/node_modules": true,
+  }
+}

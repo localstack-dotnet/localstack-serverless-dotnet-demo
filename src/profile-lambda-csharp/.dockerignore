@@ -1,0 +1,10 @@
+.serverless
+node_modules
+.dockerignore
+Dockerfile
+bin
+obj
+npm-debug.log
+.git
+.hg
+.svn
