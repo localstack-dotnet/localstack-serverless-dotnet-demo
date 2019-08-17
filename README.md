@@ -2,7 +2,7 @@
 
 Demo project for usage of LocalStack, Serverless and .NET Core
 
-![Demo](https://github.com/Blind-Striker/localstack-serverless-dotnet-demo/blob/master/assets/architecture.png?raw=true)
+![Demo](https://raw.githubusercontent.com/localstack-dotnet/localstack-serverless-dotnet-demo/master/assets/architecture.png)
 
 ## Prerequisites
 
