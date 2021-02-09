@@ -5,16 +5,18 @@ plugins:
 
 custom:
   localstack:
-    host: http://${env:LOCAL_STACK_HOST}
+    debug: true
+    host: http://localstack
     stages:
       - local
+    edgePort: 4566
   stages:
     - local
     - prod
 
 provider:
   name: aws
-  runtime: dotnetcore2.1
+  runtime: dotnetcore3.1
   region: eu-central-1
   stage: ${opt:stage, 'local'}
 
@@ -26,6 +28,8 @@ functions:
     handler: CsharpHandlers::AwsDotnetCsharp.Handler::CreateProfileAsync
     package:
       artifact: artifact/profile-lambda-csharp.zip
+    environment:
+      LocalStack:Config:LocalStackHost: http://localstack
     events:
     - http:
         path: profile

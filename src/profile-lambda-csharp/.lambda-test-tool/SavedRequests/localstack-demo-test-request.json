@@ -1,0 +1,57 @@
+{
+  "body": "{  \r\n   \"Id\":\"2\",\r\n   \"Name\":\"Kul\u00FCbettin2\",\r\n   \"Email\":\"kulubettin@gmail.com\",\r\n   \"ProfilePicName\":\"my-profile2-pic.jpg\",\r\n   \"ProfilePicBase64\":\"\/9j\/2wBDAAgGBgcGBQgHBwcJCQgKDBQNDAsLDBkSEw8UHRofHh0aHBwgJC4nICIsIxwcKDcpLDAxNDQ0Hyc5PTgyPC4zNDL\/2wBDAQkJCQwLDBgNDRgyIRwhMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjL\/wgARCABLADIDASIAAhEBAxEB\/8QAGgAAAgMBAQAAAAAAAAAAAAAAAAQCAwUGAf\/EABkBAAMBAQEAAAAAAAAAAAAAAAECAwQFAP\/aAAwDAQACEAMQAAABVh5J5kLdYHn7WVysy8CoaI0Kx0UvJWrR0FKTpOgFVVNmM6wUaTovp5U69UYRFnUtCNE5mwjqxyYUYDOkiGpSzJLZbK7l6TlZVf4dqSOX1\/\/EACMQAAICAgICAgMBAAAAAAAAAAECAxEAEgQTECEUIiMyM0H\/2gAIAQEAAQUC2KyyH7yUEkg1Xr\/Ef167wOLLYT2NLA7gj6J7UciMCqKcbdUh6pGnVkoDIKvthzqbI3EaOwcIKU4pA5fU+N7XVqQU9zJJ2cklIyMSX6G8uj2pHhnG3fnyCc+XqGBYujge71rDkMIYU2b2gvJCN78QyUNlyPk6CTmMyFaF5eL7bRMPj\/PEP9s\/\/8QAHhEAAgICAgMAAAAAAAAAAAAAAAECERMhAzEQIlH\/2gAIAQMBAT8BpuJislFLSPX6cacdMtklsxyJOLeyThVWKXFHdmeI4o6ZF3LZRklVDF34\/8QAHxEAAgICAwADAAAAAAAAAAAAAAECERIxEBMhIkFR\/9oACAECAQE\/Aa9M8S7PkSn+Dp7Po7IiTRFSvRjN6R0sUmhErrzjCNiHrj\/\/xAApEAACAgEBBQgDAAAAAAAAAAAAAQIRIRASMkFRkRMxM0JhcXKBIpKi\/9oACAEBAAY\/AqWkfhgTTHIfsdxezk3SKr0FiiURdBYeiltEZN4MZT5GUx3G6PA\/oyhKzZ4nM4k+CPEn+qGvQunY+RJwnWTeLfeR9jzdDzdCqaHRumEV2ccH42o8C9pmdXN\/S5nhw6GDPcY12WbxTVmzFUXrFepux6a\/WsPktP\/EACIQAQACAgICAgMBAAAAAAAAAAEAESExUWFBcRDxgZHw0f\/aAAgBAQABPyEsbzklrmcfwy2RvkmFnIlTLFsMrkbRAq\/KCukQA3VAgViO5f2KgrXV2oRaSbXiLSC+pTChyzYGKMW1UOvGZVjLcPid6OI9xa7XUZAaPJZCQFoWFTlVhuqlaFrkhRhjx9Etykdq2qxXuIryvN4fUag9peO6VdRlW1tm2q6S1cg6k2ROoR2DxUtgUWNS9fccYf3Bhc0u4ieabXuXd7Y2Vre4WZbntiXEpdC7T7BGhpj9wEwtRC\/CW5iqQ+IbIUf6jWIEfVrtiDbctzLTXdgn1SbTTFXP5fzOfj\/\/2gAMAwEAAgADAAAAEMZU83PGPO8EAwK\/AGxMz\/\/EACERAAICAQMFAQAAAAAAAAAAAAABESHwMVGBQWFxkbHR\/9oACAEDAQE\/EFEJ9ZNdkjsZ9PAUDQlONEIjDzEZwv0tyOUQzerGknb5Z3BuhxuCkDFi1wWC6IhH\/8QAHxEAAgICAQUAAAAAAAAAAAAAAAERITFREEGhsdHw\/9oACAECAQE\/EKSjoOhNizMnQU1axGzkLI+pfoVUuw+z8CBCEPTxDNqSIrHcgeSrMl7P\/8QAJRABAAICAQQBBAMAAAAAAAAAAQARITFBUWGRsfAQcaHRgcHx\/9oACAEBAAE\/ELwwc7ULB3iwlCGcB3cnxCqjlgYsuVaWMVjvK1LSNyVkQYmXLbct2d3at\/mErEGeIIbsWyuqjjGqzvn9TJyhBut\/1La1BeM4irGzSwqFOCzzMw46KoBblEoSj27\/ADEw1OhOBIARRDeX8XKsBHT\/ABFDONuAwK+Vomc8ZidZlr2GJSiBlkFqqOZc4wyKaekXqwo4Ep9rAArOVtkC\/LcAbupWaCXDmqqdLOsaiqsqbET2uNAoArRetTqTmoa8RACbbllAXCxvmpzpMcBDVRFB2IdIFoc+eZdzVONxgCFq4AQ2tukeDQZmaxcFlFtFPsvB96jfDbAUeIXksMqCDeOCIB25EKUWGHY28AbftG19t+blaVGzXLXgKIVow3HEIkIKKdA4lHKMBWkzmdexQ1dh+iLCoa1bEC67OkhoR0jmo0Q7d4Bylm2ErD7wib8rxPdFVqCxWFDH0J8h0RW3M\/\/Z\"\r\n}",
+  "resource": "/{proxy+}",
+  "path": "/path/to/resource",
+  "httpMethod": "POST",
+  "queryStringParameters": {
+    "foo": "bar"
+  },
+  "pathParameters": {
+    "proxy": "path/to/resource"
+  },
+  "stageVariables": {
+    "baz": "qux"
+  },
+  "headers": {
+    "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8",
+    "Accept-Encoding": "gzip, deflate, sdch",
+    "Accept-Language": "en-US,en;q=0.8",
+    "Cache-Control": "max-age=0",
+    "CloudFront-Forwarded-Proto": "https",
+    "CloudFront-Is-Desktop-Viewer": "true",
+    "CloudFront-Is-Mobile-Viewer": "false",
+    "CloudFront-Is-SmartTV-Viewer": "false",
+    "CloudFront-Is-Tablet-Viewer": "false",
+    "CloudFront-Viewer-Country": "US",
+    "Host": "1234567890.execute-api.{dns_suffix}",
+    "Upgrade-Insecure-Requests": "1",
+    "User-Agent": "Custom User Agent String",
+    "Via": "1.1 08f323deadbeefa7af34d5feb414ce27.cloudfront.net (CloudFront)",
+    "X-Amz-Cf-Id": "cDehVQoZnx43VYQb9j2-nvCh-9z396Uhbp027Y2JvkCPNLmGJHqlaA==",
+    "X-Forwarded-For": "127.0.0.1, 127.0.0.2",
+    "X-Forwarded-Port": "443",
+    "X-Forwarded-Proto": "https"
+  },
+  "requestContext": {
+    "accountId": "123456789012",
+    "resourceId": "123456",
+    "stage": "prod",
+    "requestId": "c6af9ac6-7b61-11e6-9a41-93e8deadbeef",
+    "identity": {
+      "cognitoIdentityPoolId": null,
+      "accountId": null,
+      "cognitoIdentityId": null,
+      "caller": null,
+      "apiKey": null,
+      "sourceIp": "127.0.0.1",
+      "cognitoAuthenticationType": null,
+      "cognitoAuthenticationProvider": null,
+      "userArn": null,
+      "userAgent": "Custom User Agent String",
+      "user": null
+    },
+    "resourcePath": "/{proxy+}",
+    "httpMethod": "POST",
+    "apiId": "1234567890"
+  }
+}

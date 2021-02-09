@@ -6,7 +6,7 @@ Demo project for usage of LocalStack, Serverless and .NET Core
 
 ## Prerequisites
 
-Docker, NodeJs, and .NET Core 2.1 must be installed on your computer.
+Docker, NodeJs, and .NET Core 3.1 must be installed on your computer.
 
 ## Deploying the application to LocalStack
 

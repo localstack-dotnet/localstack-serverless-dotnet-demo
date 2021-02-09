@@ -1,5 +1,5 @@
 curl -X POST \
-  http://localhost:4567/restapis/442865321A-Z/local/_user_request_/profile \
+  'http://localhost:4566/restapis/9ia7hz31e8/local/_user_request_/profile' \
   -H 'Accept: */*' \
   -H 'Accept-Encoding: gzip, deflate' \
   -H 'Cache-Control: no-cache' \

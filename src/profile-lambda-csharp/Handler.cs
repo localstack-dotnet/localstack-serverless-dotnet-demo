@@ -4,14 +4,15 @@ using Amazon.Lambda.APIGatewayEvents;
 using Amazon.Lambda.Core;
 using Amazon.S3;
 using Amazon.S3.Transfer;
-using LocalStack.Client;
-using LocalStack.Client.Contracts;
 using Newtonsoft.Json;
 using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Net;
 using System.Threading.Tasks;
+using LocalStack.Client.Extensions;
+using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.DependencyInjection;
 
 [assembly: LambdaSerializer(typeof(Amazon.Lambda.Serialization.Json.JsonSerializer))]
 
@@ -19,28 +20,35 @@ namespace AwsDotnetCsharp
 {
     public class Handler
     {
-        private const string AwsAccessKeyId = "test";
-        private const string AwsAccessKey = "test";
-        private const string AwsSessionToken = "Token";
         private const string RegionName = "eu-central-1";
         private const string LocalStackHost = "localstack-profile";
         private const string BucketName = "profile-pictures";
         private const string TableName = "Profiles";
 
-        private readonly AmazonS3Client _awsS3Client;
-        private readonly AmazonDynamoDBClient _awsDynamoDbClient;
+        private readonly IAmazonS3 _awsS3Client;
+        private readonly IAmazonDynamoDB _awsDynamoDbClient;
 
         public Handler()
         {
-            ISession session = SessionStandalone
-              .Init()
-              .WithSessionOptions(AwsAccessKeyId, AwsAccessKey, AwsSessionToken, RegionName)
-              .WithConfig(LocalStackHost)
-              .Create();
+            Configuration = new ConfigurationBuilder()
+                .SetBasePath(Directory.GetCurrentDirectory())
+                .AddJsonFile("appsettings.json", false)
+                .AddEnvironmentVariables()
+                .Build();
 
-            _awsS3Client = session.CreateClient<AmazonS3Client>();
-            _awsDynamoDbClient = session.CreateClient<AmazonDynamoDBClient>();
+            var collection = new ServiceCollection();
+
+            ConfigureServices(collection);
+
+            ServiceProvider = collection.BuildServiceProvider();
+
+            _awsS3Client = ServiceProvider.GetRequiredService<IAmazonS3>();
+            _awsDynamoDbClient = ServiceProvider.GetRequiredService<IAmazonDynamoDB>();
         }
+
+        private IConfiguration Configuration { get; }
+
+        private IServiceProvider ServiceProvider { get; }
 
         public async Task<APIGatewayProxyResponse> CreateProfileAsync(APIGatewayProxyRequest request, ILambdaContext context)
         {
@@ -49,14 +57,14 @@ namespace AwsDotnetCsharp
             string requestBody = request.Body;
 
             context.Logger.LogLine($"Request Body\n {requestBody}");
-            AddProfileModel addProfileModel = JsonConvert.DeserializeObject<AddProfileModel>(requestBody);
+            var addProfileModel = JsonConvert.DeserializeObject<AddProfileModel>(requestBody);
 
             context.Logger.LogLine($"Decoding Base64 image");
-            var bytes = Convert.FromBase64String(addProfileModel.ProfilePicBase64);
+            byte[] bytes = Convert.FromBase64String(addProfileModel.ProfilePicBase64);
 
             var fileTransferUtility = new TransferUtility(_awsS3Client);
 
-            using (var ms = new MemoryStream(bytes))
+            await using (var ms = new MemoryStream(bytes))
             {
                 context.Logger.LogLine($"Uploading {addProfileModel.ProfilePicName} to {BucketName}");
                 await fileTransferUtility.UploadAsync(ms, BucketName, addProfileModel.ProfilePicName);
@@ -81,7 +89,15 @@ namespace AwsDotnetCsharp
             return response;
         }
 
-        private void WriteVariables(ILambdaContext context)
+        private void ConfigureServices(IServiceCollection serviceCollection)
+        {
+            serviceCollection
+                .AddLocalStack(Configuration)
+                .AddAwsService<IAmazonS3>()
+                .AddAwsService<IAmazonDynamoDB>();
+        }
+
+        private static void WriteVariables(ILambdaContext context)
         {
             context.Logger.LogLine($"RegionName: {RegionName}");
             context.Logger.LogLine($"LocalStackHost: {LocalStackHost}");
