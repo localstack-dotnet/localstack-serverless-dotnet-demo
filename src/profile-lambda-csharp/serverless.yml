@@ -6,10 +6,13 @@ plugins:
 custom:
   localstack:
     debug: true
-    host: http://localstack
+    host: http://localhost
     stages:
       - local
     edgePort: 4566
+    endpoints:
+      # This section is optional - can be used for customizing the target endpoints
+      Lambda: http://localhost:4566
   stages:
     - local
     - prod
@@ -29,7 +32,7 @@ functions:
     package:
       artifact: artifact/profile-lambda-csharp.zip
     environment:
-      LocalStack:Config:LocalStackHost: http://localstack
+      LocalStack:Config:LocalStackHost: http://localhost
     events:
     - http:
         path: profile

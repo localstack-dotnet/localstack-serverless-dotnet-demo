@@ -1,12 +1,12 @@
-version: '2.1'
+version: '3.0'
 
 services:
   localstack-profile:
-    privileged: true
-    image: localstack/localstack:0.12.6
+    image: localstack/localstack:latest
     ports:
       - '4566:4566'
       - '${PORT_WEB_UI-8080}:${PORT_WEB_UI-8080}'
+
     environment:
       - DEFAULT_REGION=eu-central-1
       - SERVICES=${SERVICES- }
@@ -14,9 +14,13 @@ services:
       - DATA_DIR=/tmp/localstack/data
       - PORT_WEB_UI=${PORT_WEB_UI- }
       - LAMBDA_EXECUTOR=docker-reuse
+      - LAMBDA_REMOTE_DOCKER=false
+      - LAMBDA_REMOVE_CONTAINERS=true            
       - LAMBDA_DOCKER_NETWORK=build
       - KINESIS_ERROR_PROBABILITY=${KINESIS_ERROR_PROBABILITY- }
       - DOCKER_HOST=unix:///var/run/docker.sock
+      - HOSTNAME_EXTERNAL=localhost
+
     volumes:
       - "localstack-vol:/tmp/localstack"
       - "/var/run/docker.sock:/var/run/docker.sock"

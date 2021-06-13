@@ -22,9 +22,15 @@ Then, in another terminal session, install the `serverless-localstack` plug-in u
 
 ```
 npm install serverless-localstack
+dotnet tool install -g Amazon.Lambda.Tools
+export PATH="$PATH:/home/gitpod/.dotnet/tools"
+```
+Build:
+```
+dotnet restore
+dotnet lambda package --configuration Release --framework netcoreapp3.1 --output-package artifact/profile-lambda-csharp.zip
 ```
 
-Run `build.sh`, after that the project will be ready to deploy.
 
 Run the command below and deploy the application to running LocalStack instance.
 
@@ -32,13 +38,16 @@ Run the command below and deploy the application to running LocalStack instance.
 serverless deploy --verbose --stage local
 ```
 
-## Runnin the application
+## Running the application
 
 Before running the application, first we need create necessary resources on LocalStack.
 
 First install [LocalStack.NET AWS CLI](https://github.com/localstack-dotnet/localstack-awscli-local) tool. This .NET Core global tool provides the `awslocal` command, which is a thin wrapper around the aws command line interface for use with LocalStack.
 
 ```
+curl "https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip" -o "awscliv2.zip"
+unzip awscliv2.zip
+sudo ./aws/install
 dotnet tool install --global LocalStack.AwsLocal
 ```
 
@@ -81,6 +90,43 @@ Using the following commands, you can check whether records are created in both 
 awslocal s3api list-objects --bucket profile-pictures
 awslocal dynamodb scan --table-name Profiles
 ```
+
+### Handy commands:
+
+#List functions:
+`awslocal lambda list-functions`
+
+#Create role:
+
+`awslocal iam create-role --role-name lambda-dotnet-ex --assume-role-policy-document '{"Version": "2012-10-17", "Statement": [{ "Effect": "Allow", "Principal": {"Service": "lambda.amazonaws.com"}, "Action": "sts:AssumeRole"}]}'`
+
+#Attach AWSLambdaBasicExecutionRole policy to role
+
+`awslocal iam attach-role-policy --role-name lambda-dotnet-ex --policy-arn arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole`
+
+#Create lambda
+
+`awslocal lambda create-function --function-name profile-local-hello --zip-file fileb://artifact/profile-lambda-csharp.zip --handler CsharpHandlers::AwsDotnetCsharp.Handler::CreateProfileAsync --runtime dotnetcore3.1 --role arn:aws:iam::000000000000:role/lambda-dotnet-ex`
+
+#Invoke lambda in localstack passing a json payload (string is valid JSON)
+
+`awslocal lambda invoke --function-name lambda-dotnet-function --payload "\"Just Checking If Everything is OK again\"" response.json --log-type Tail`
+
+#Delete function
+
+`awslocal lambda delete-function --function-name profile-local-hello`
+
+# List buckets
+`awslocal s3api list-buckets`
+
+# List objects
+`awslocal s3api list-objects --bucket profile-local-serverlessdeploymentbucket-2f94a3b3`
+
+# Download an object
+`serverless/profile/local/1623539586879-2021-06-12T23:13:06.879Z/profile-lambda-csharp.zip`
+
+# Get function details
+`awslocal lambda get-function --function-name profile-local-hello`
 
 ## <a name="license"></a> License
 Licensed under MIT, see [LICENSE](LICENSE) for the full text.

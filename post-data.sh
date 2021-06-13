@@ -1,12 +1,11 @@
-curl -X POST \
-  'http://localhost:4566/restapis/9ia7hz31e8/local/_user_request_/profile' \
+curl -X POST 'http://localhost:4566/restapis/0bblqt5nt5/local/_user_request_/profile-local-hello' \
   -H 'Accept: */*' \
   -H 'Accept-Encoding: gzip, deflate' \
   -H 'Cache-Control: no-cache' \
   -H 'Connection: keep-alive' \
   -H 'Content-Length: 2401' \
   -H 'Content-Type: application/json' \
-  -H 'Host: localhost:4567' \
+  -H 'Host: localhost:4566' \
   -H 'Postman-Token: 77aa434b-ba0e-47d9-bec3-a85c6ead4747,5cb512fc-b747-4a29-8349-2d11afdc5d88' \
   -H 'User-Agent: PostmanRuntime/7.15.2' \
   -H 'cache-control: no-cache' \
