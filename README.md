@@ -8,6 +8,10 @@ Demo project for usage of LocalStack, Serverless and .NET Core
 
 Docker, NodeJs, and .NET Core 3.1 must be installed on your computer.
 
+## Restart Docker
+
+ sudo systemctl restart docker.service
+
 ## Deploying the application to LocalStack
 
 First you need to install [Serverless Framework](https://serverless.com/framework/docs/providers/aws/guide/installation/)
@@ -64,17 +68,8 @@ You can test the application using the following curl command.
 
 ```
 curl -X POST \
-  http://localhost:4567/restapis/442865321A-Z/local/_user_request_/profile \
-  -H 'Accept: */*' \
-  -H 'Accept-Encoding: gzip, deflate' \
-  -H 'Cache-Control: no-cache' \
-  -H 'Connection: keep-alive' \
-  -H 'Content-Length: 2401' \
+  http://localhost:4566/restapis/ogfhvmpt0e/local/_user_request_/profile \
   -H 'Content-Type: application/json' \
-  -H 'Host: localhost:4567' \
-  -H 'Postman-Token: 77aa434b-ba0e-47d9-bec3-a85c6ead4747,5cb512fc-b747-4a29-8349-2d11afdc5d88' \
-  -H 'User-Agent: PostmanRuntime/7.15.2' \
-  -H 'cache-control: no-cache' \
   -d '{  
    "Id":"2",
    "Name":"Kulübettin",
@@ -108,11 +103,12 @@ awslocal dynamodb scan --table-name Profiles
 
 `awslocal lambda create-function --function-name profile-local-hello --zip-file fileb://artifact/profile-lambda-csharp.zip --handler CsharpHandlers::AwsDotnetCsharp.Handler::CreateProfileAsync --runtime dotnetcore3.1 --role arn:aws:iam::000000000000:role/lambda-dotnet-ex`
 
-#Invoke lambda in localstack passing a json payload (string is valid JSON)
+# Invoke lambda in localstack passing a json payload (string is valid JSON)
 
-`awslocal lambda invoke --function-name lambda-dotnet-function --payload "\"Just Checking If Everything is OK again\"" response.json --log-type Tail`
+`awslocal lambda invoke --function-name profile-local-hello --payload "{}" response.json --log-type Tail`
 
-#Delete function
+`awslocal lambda invoke --cli-binary-format raw-in-base64-out --function-name profile-local-hello --payload '{\"Id\":\"2\",\"Name\":\"Kulubettin\",\"Email\":\"kulubettin@gmail.com\",\"ProfilePicName\":\"my-profile2-pic.jpg\",\"ProfilePicBase64\":\"/9j/2wBDAAgGBgcGBQgHBwcJCQgKDBQNDAsLDBkSEw8UHRofHh0aHBwgJC4nICIsIxwcKDcpLDAxNDQ0Hyc5PTgyPC4zNDL/2wBDAQkJCQwLDBgNDRgyIRwhMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjL/wgARCAAlABkDASIAAhEBAxEB/8QAGAAAAwEBAAAAAAAAAAAAAAAAAAMFAgT/xAAYAQADAQEAAAAAAAAAAAAAAAACAwQAAf/aAAwDAQACEAMQAAAB3Fl9CzuMThZzaSuEu1cBhTzAqivPCiP/xAAgEAACAgEDBQAAAAAAAAAAAAACAwEEABITIgURFCEk/9oACAEBAAEFAnWUqxfUrCzYW+jSed5Wa1yx8SUDpjDGCKukk3rXo+WIhU1RYyWG36fNbgHysTKWvQMK24z/xAAbEQEAAgIDAAAAAAAAAAAAAAABAAIRIQMQQf/aAAgBAwEBPwHBDkxCiwqesps31//EABsRAAIBBQAAAAAAAAAAAAAAAAABEQIDEDJB/9oACAECAQE/AZY7ZI2+FO2P/8QAJBAAAgIBAwMFAQAAAAAAAAAAAQIAEQMhMUESUWEQEyIykpH/2gAIAQEABj8CofN+1xiApD8VtFrERR5m2L9wqNVudCamC5tA97mYfOkKjhiZ9Gje4GtDxAcbOKOngTqB/U2H9jYiNKqNiQ0tTA3dfT//xAAhEAACAgEEAgMAAAAAAAAAAAABEQAxIRBBYZFR8XGB8P/aAAgBAQABPyEN8NAKdEbA4MU1EafZOksLSUgMDIhBJ4ZPM4EAIDvCeUjJRr51E/QRNgRV2szN7LNmTWhNsE57dLGXHmYHHS7jDlp696H/2gAMAwEAAgADAAAAEKwOsPwf/8QAGhEBAQADAQEAAAAAAAAAAAAAAQARITFBUf/aAAgBAwEBPxA5Eyddi8hqb5RwH1Zv/8QAGBEBAQEBAQAAAAAAAAAAAAAAAQARMYH/2gAIAQIBAT8QezAwNzY/OwzxJf/EACMQAQACAgEDBAMAAAAAAAAAAAERIQAxgUFRcRBhwfGh0fD/2gAIAQEAAT8QSVwwBJ94o5eMkciooeY3zGBeccCMIjSTD4z6/wDrLSShGh6ia3jm1iHa78VOElFCSerPo8FVLIwAsw+PnEOEsGmJl5EyODRjqOj8+mBQYCYQEk92qwz5IPcEutcVlaGkYuuYKJe2f2fzhL4DDBFOJWBBVFBM7XRPthwRUW4IJfLPdc//2Q==\"}' response.json --log-type Tail`
+# Delete function
 
 `awslocal lambda delete-function --function-name profile-local-hello`
 
