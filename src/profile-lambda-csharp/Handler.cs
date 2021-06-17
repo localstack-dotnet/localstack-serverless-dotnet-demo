@@ -13,6 +13,7 @@ using System.Threading.Tasks;
 using LocalStack.Client.Extensions;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
+using Newtonsoft.Json.Linq;
 
 [assembly: LambdaSerializer(typeof(Amazon.Lambda.Serialization.Json.JsonSerializer))]
 
@@ -50,13 +51,19 @@ namespace AwsDotnetCsharp
 
         private IServiceProvider ServiceProvider { get; }
 
-        public async Task<APIGatewayProxyResponse> CreateProfileAsync(APIGatewayProxyRequest request, ILambdaContext context)
+        public async Task<Object> CreateProfileAsync(JObject requestObject, ILambdaContext context)
         {
             WriteVariables(context);
+            JToken requestBodyToken = null;
+            string requestBody = "";
+            if (requestObject.TryGetValue("body", out requestBodyToken)){
+                // The function was called by POST
+                requestBody = requestBodyToken.ToString();
+            } else {
+                // The function was called by aws cli 'invoke'
+                requestBody = requestObject.ToString();
+            }
 
-            string requestBody = request.Body;
-
-            context.Logger.LogLine($"Request Body\n {requestBody}");
             var addProfileModel = JsonConvert.DeserializeObject<AddProfileModel>(requestBody);
 
             context.Logger.LogLine($"Decoding Base64 image");
@@ -78,14 +85,13 @@ namespace AwsDotnetCsharp
                 {nameof(AddProfileModel.Email), new AttributeValue(addProfileModel.Email)},
                 {nameof(AddProfileModel.ProfilePicName), new AttributeValue(addProfileModel.ProfilePicName)}
             });
-
+            context.Logger.LogLine($"SUCCESS!!!");
             var response = new APIGatewayProxyResponse
             {
                 StatusCode = (int)HttpStatusCode.OK,
                 Body = "Created",
                 Headers = new Dictionary<string, string> { { "Content-Type", "text/plain" } }
             };
-
             return response;
         }
 
