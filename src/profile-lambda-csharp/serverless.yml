@@ -6,10 +6,13 @@ plugins:
 custom:
   localstack:
     debug: true
-    host: http://localstack
+    host: http://localhost
     stages:
       - local
     edgePort: 4566
+    endpoints:
+      # This section is optional - can be used for customizing the target endpoints
+      Lambda: http://localhost:4566
   stages:
     - local
     - prod
@@ -29,9 +32,9 @@ functions:
     package:
       artifact: artifact/profile-lambda-csharp.zip
     environment:
-      LocalStack:Config:LocalStackHost: http://localstack
+      LocalStack:Config:LocalStackHost: localstack-profile # matches service name from docker-compose.yml
     events:
-    - http:
-        path: profile
-        method: POST
-        cors: true
+      - http:
+          path: profile # This is the route used by the post 
+          method: POST
+          cors: true

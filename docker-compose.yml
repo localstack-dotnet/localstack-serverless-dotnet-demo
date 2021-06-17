@@ -1,32 +1,39 @@
-version: '2.1'
+version: '3.0'
 
 services:
-  localstack-profile:
-    privileged: true
-    image: localstack/localstack:0.12.6
+  localstack-profile: #this is the name of the service.  Note: it is ALSO the name of a host created by Docker compose
+    image: localstack/localstack:latest
     ports:
       - '4566:4566'
       - '${PORT_WEB_UI-8080}:${PORT_WEB_UI-8080}'
+
     environment:
-      - DEFAULT_REGION=eu-central-1
-      - SERVICES=${SERVICES- }
+      - DEFAULT_REGION=eu-central-1 # regions must match (e.g. in serverless.yml)
+      - SERVICES=${SERVICES-acm,apigateway
+          ,cloudformation,cloudwatch,dynamodb
+          ,dynamodbstreams,ec2,es,events
+          ,firehose,iam,kinesis,kms,lambda,rds
+          ,route53,s3,s3api,secretsmanager,ses,sns
+          ,sqs,ssm,stepfunctions,sts }
       - DEBUG="1"
-      - DATA_DIR=/tmp/localstack/data
+      - DATA_DIR=/tmp/localstack/data # for use by 
       - PORT_WEB_UI=${PORT_WEB_UI- }
       - LAMBDA_EXECUTOR=docker-reuse
-      - LAMBDA_DOCKER_NETWORK=build
+      - LAMBDA_REMOVE_CONTAINERS=1            
+      - LAMBDA_DOCKER_NETWORK=profile-network # using a specified network to allow lambda to reach LocalStack
       - KINESIS_ERROR_PROBABILITY=${KINESIS_ERROR_PROBABILITY- }
       - DOCKER_HOST=unix:///var/run/docker.sock
+
     volumes:
-      - "localstack-vol:/tmp/localstack"
+      - "${TMP_DIR:-/tmp/localstack}:${TMP_DIR:-/tmp/localstack}" # used for LocalStack internal data
       - "/var/run/docker.sock:/var/run/docker.sock"
     networks:
-      - build
+      - profile-network
 
 volumes:
   localstack-vol:
 
 networks:
-  build:
-    name: build
+  profile-network:
+    name: profile-network
     driver: bridge
