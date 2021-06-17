@@ -118,7 +118,7 @@ awslocal lambda invoke --cli-binary-format raw-in-base64-out --function-name pro
 
 # Full test of client access to lambda
 chmod +x client-test.sh
-client-test.sh
+./client-test.sh
 
 ## <a name="license"></a> License
 Licensed under MIT, see [LICENSE](LICENSE) for the full text.
