@@ -2,7 +2,7 @@ version: '3.0'
 
 services:
   localstack-profile: #this is the name of the service.  Note: it is ALSO the name of a host created by Docker compose
-    image: localstack/localstack:latest
+    image: localstack/localstack:0.12.11
     ports:
       - '4566:4566'
       - '${PORT_WEB_UI-8080}:${PORT_WEB_UI-8080}'
