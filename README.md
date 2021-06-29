@@ -100,7 +100,7 @@ and
 awslocal dynamodb scan --table-name Profiles
 ```
 ### Testing everything together
-A single script, client-test.sh, demonstrates both POST and CLI invocation.  
+A single script, client-test.sh, demonstrates both POST and CLI invocation:
 
 ```
 chmod +x client-test.sh
@@ -132,6 +132,18 @@ to the SQS queue.  If you now return to the src/profile-lambda-csharp directory 
 client-test.sh script, you will eventually see that each time the original lambda has queued
 an SQS message, the queuing has resulted in the invocation of the new sqs lambda, which writes the message
 to the Messages table.
+
+## To remove the queue and the mapping for re-testing:
+```
+if (awslocal sqs list-queues | ./json | grep -q "myQueue") then 
+	awslocal sqs delete-queue --queue-url http://localhost:4566/000000000000/myQueue
+fi
+if (awslocal lambda list-event-source-mappings --function-name queuereader-local-queue --event-source-arn arn:aws:sqs:eu-central-1:000000000000:myQueue | ./json "EventSourceMappings" | grep -q '\[\]') then  
+	echo 'No mappings'
+else
+	awslocal lambda delete-event-source-mapping --uuid  $(awslocal lambda list-event-source-mappings --function-name queuereader-local-queue --event-source-arn arn:aws:sqs:eu-central-1:000000000000:myQueue | ./json "EventSourceMappings.0.UUID")
+fi
+```
 
 ### Handy commands:
 
