@@ -12,8 +12,10 @@ serverless deploy --verbose --stage local
 echo setting up the aws environment...
 awslocal s3 rb s3://profile-pictures  --force > /dev/null # delete bucket if it exists 
 awslocal s3api create-bucket --bucket profile-pictures --region eu-central-1
-awslocal dynamodb delete-table --table-name Profiles > /dev/null # delete table if it exists
+awslocal dynamodb delete-table --table-name Profiles > /dev/null # delete the Profiles table if it exists
 awslocal dynamodb create-table --table-name Profiles --attribute-definitions AttributeName=Id,AttributeType=S --key-schema AttributeName=Id,KeyType=HASH --provisioned-throughput ReadCapacityUnits=5,WriteCapacityUnits=5 --region eu-central-1 | ./json  TableDescription | ./json -a TableName TableStatus
+awslocal dynamodb delete-table --table-name Messages > /dev/null # delete the Messages table if it exists
+awslocal dynamodb create-table --table-name Messages --attribute-definitions AttributeName=message,AttributeType=S --key-schema AttributeName=message,KeyType=HASH --provisioned-throughput ReadCapacityUnits=5,WriteCapacityUnits=5 --region eu-central-1 | ./json  TableDescription | ./json -a TableName TableStatus
 
 echo capture the rest-app id...
 export RESTAPI=$(awslocal apigateway get-rest-apis | ./json "items.0.id")
@@ -35,7 +37,7 @@ echo resetting the aws environment
 echo
 awslocal s3 rb s3://profile-pictures  --force > /dev/null # delete bucket if it exists 
 awslocal s3api create-bucket --bucket profile-pictures --region eu-central-1
-awslocal dynamodb delete-table --table-name Profiles > /dev/null # delete table if it exists
+awslocal dynamodb delete-table --table-name Profiles > /dev/null # delete Profiles table 
 awslocal dynamodb create-table --table-name Profiles --attribute-definitions AttributeName=Id,AttributeType=S --key-schema AttributeName=Id,KeyType=HASH --provisioned-throughput ReadCapacityUnits=5,WriteCapacityUnits=5 --region eu-central-1 | ./json  TableDescription | ./json -a TableName TableStatus
 
 echo testing aws-cli invoke
@@ -52,4 +54,6 @@ else
     echo 'DYNAMODB WAS NOT LOADED BY CLI!!';
 fi
 
+echo reading the Messages table
+awslocal dynamodb scan --table-name Messages | ./json "Items" 
 
