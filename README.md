@@ -3,7 +3,7 @@
 Demo project for usage of LocalStack, Serverless and .NET Core
 
 ![Demo](https://raw.githubusercontent.com/localstack-dotnet/localstack-serverless-dotnet-demo/master/assets/architecture.png)
-
+ 
 ## Prerequisites
 
 Docker, NodeJs, and .NET Core 3.1 must be installed on your computer.
