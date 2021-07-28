@@ -1,2 +1,7 @@
 src/queue-lambda-csharp/json linguist-vendored
 src/profile-lambda-csharp/json linguist-vendored
+src/profile-lambda-csharp/client-test.sh linguist-vendored
+src/queue-lambda-csharp/read-sqs.sh linguist-vendored
+src/profile-lambda-csharp/build.sh linguist-vendored
+src/queue-lambda-csharp/build.cmd linguist-vendored
+src/profile-lambda-csharp/build.cmd linguist-vendored
