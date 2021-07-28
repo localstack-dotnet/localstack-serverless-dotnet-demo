@@ -16,7 +16,6 @@ services:
           ,route53,s3,s3api,secretsmanager,ses,sns
           ,sqs,ssm,stepfunctions,sts }
       - DEBUG="1"
-      - DATA_DIR=/tmp/localstack/data # for use by 
       - PORT_WEB_UI=${PORT_WEB_UI- }
       - LAMBDA_EXECUTOR=docker-reuse
       - LAMBDA_REMOVE_CONTAINERS=1            

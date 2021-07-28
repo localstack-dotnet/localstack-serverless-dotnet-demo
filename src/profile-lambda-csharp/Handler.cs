@@ -85,7 +85,8 @@ namespace AwsDotnetCsharp
                 {nameof(AddProfileModel.Email), new AttributeValue(addProfileModel.Email)},
                 {nameof(AddProfileModel.ProfilePicName), new AttributeValue(addProfileModel.ProfilePicName)}
             });
-            context.Logger.LogLine($"SUCCESS!!!");
+            await (new SqsSender(context.Logger)).Send($"Success at {DateTime.Now.ToString("h:mm:ss tt")}");
+            context.Logger.LogLine("SUCCESS!!!");            
             var response = new APIGatewayProxyResponse
             {
                 StatusCode = (int)HttpStatusCode.OK,
