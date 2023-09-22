@@ -1,6 +1,6 @@
 ﻿namespace LocalStack.Core.Contracts;
 
-public interface IProfileServiceResponse<TModel> where TModel : class
+public interface IServiceResponse<TModel> where TModel : class
 {
     string Operation { get; init; }
 

@@ -4,7 +4,7 @@
 [JsonSerializable(typeof(ProfileServiceRequest))]
 [JsonSerializable(typeof(AddProfileModel))]
 [JsonSerializable(typeof(ProfileModel))]
-[JsonSerializable(typeof(IProfileServiceResponse<ProfileModel>))]
+[JsonSerializable(typeof(IServiceResponse<ProfileModel>))]
 public partial class LambdaFunctionJsonSerializerContext : JsonSerializerContext
 {
     // By using this partial class derived from JsonSerializerContext, we can generate reflection free JSON Serializer code at compile time

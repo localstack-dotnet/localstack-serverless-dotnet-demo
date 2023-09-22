@@ -39,7 +39,7 @@ public class ProfileService : IProfileService
         {
             { nameof(ProfileModel.Id), new AttributeValue(id.ToString()) }
         };
-        
+
         GetItemResponse getItemResponse = await _amazonDynamoDb.GetItemAsync(_options.Table, key);
 
         if (!getItemResponse.HttpStatusCode.IsSuccessStatusCode())
@@ -103,17 +103,14 @@ public class ProfileService : IProfileService
 
         if (!putItemResponse.HttpStatusCode.IsSuccessStatusCode())
         {
-            return new DynamoDbFailure($"Error adding profile to DynamoDb. StatusCode:{putItemResponse.HttpStatusCode}",
-                _options.Table);
+            return new DynamoDbFailure($"Error adding profile to DynamoDb. StatusCode:{putItemResponse.HttpStatusCode}", _options.Table);
         }
 
-        GetQueueUrlResponse queueUrlResponse =
-            await _amazonSqs.GetQueueUrlAsync(new GetQueueUrlRequest(_options.Queue));
+        GetQueueUrlResponse queueUrlResponse = await _amazonSqs.GetQueueUrlAsync(new GetQueueUrlRequest(_options.Queue));
 
         if (!queueUrlResponse.HttpStatusCode.IsSuccessStatusCode())
         {
-            return new SqsFailure($"Error getting queue url.. StatusCode: {queueUrlResponse.HttpStatusCode}",
-                _options.Queue);
+            return new SqsFailure($"Error getting queue url.. StatusCode: {queueUrlResponse.HttpStatusCode}", _options.Queue);
         }
 
         var messageBody = $"Profiled created. {id}-{addProfileModel.Name}-{addProfileModel.Email}";
@@ -127,8 +124,7 @@ public class ProfileService : IProfileService
         SendMessageResponse sendMessageResponse = await _amazonSqs.SendMessageAsync(sendMessageRequest);
 
         return !sendMessageResponse.HttpStatusCode.IsSuccessStatusCode()
-            ? new SqsFailure($"Error sending message to queue. StatusCode: {queueUrlResponse.HttpStatusCode}",
-                _options.Queue)
+            ? new SqsFailure($"Error sending message to queue. StatusCode: {queueUrlResponse.HttpStatusCode}", _options.Queue)
             : new ProfileModel(new Guid(id), addProfileModel.Name, addProfileModel.Email, s3Url, createdAt);
     }
 }

@@ -32,7 +32,7 @@ public class Function
             .RunAsync();
     }
 
-    public static async Task<IProfileServiceResponse<ProfileModel>> FunctionHandler(ProfileServiceRequest profileServiceRequest, ILambdaContext context)
+    public static async Task<IServiceResponse<ProfileModel>> FunctionHandler(ProfileServiceRequest profileServiceRequest, ILambdaContext context)
     {
         var profileService = ServiceProvider.GetRequiredService<IProfileService>();
         var logger = ServiceProvider.GetRequiredService<ILogger<Function>>();
@@ -56,8 +56,7 @@ public class Function
             switch (operation)
             {
                 case "CreateProfile":
-                    AddProfileModel addProfile =
-                        JsonSerializer.Deserialize(profileServiceRequest.Payload, LambdaFunctionJsonSerializerContext.Default.AddProfileModel)!;
+                    AddProfileModel addProfile = JsonSerializer.Deserialize(profileServiceRequest.Payload, LambdaFunctionJsonSerializerContext.Default.AddProfileModel)!;
                     CreateProfileServiceResult createProfileServiceResult = await profileService.CreateProfileAsync(addProfile);
 
                     return createProfileServiceResult.Match(
