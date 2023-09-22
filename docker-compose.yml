@@ -2,7 +2,7 @@ version: "3.0"
 
 services:
   localstack:
-    image: localstack/localstack:2.0
+    image: localstack/localstack:latest
     ports:
       - "4566:4566"
       - "${PORT_WEB_UI-8080}:${PORT_WEB_UI-8080}"

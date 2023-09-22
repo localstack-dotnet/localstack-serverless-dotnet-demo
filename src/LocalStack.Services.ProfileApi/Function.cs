@@ -26,7 +26,7 @@ public class Function
 
         ServiceProvider = ConfigureServices(collection);
 
-        Func<ProfileServiceRequest, ILambdaContext, Task<IProfileServiceResponse<ProfileModel>>> handler = FunctionHandler;
+        var handler = FunctionHandler;
         await LambdaBootstrapBuilder.Create(handler, new SourceGeneratorLambdaJsonSerializer<LambdaFunctionJsonSerializerContext>())
             .Build()
             .RunAsync();
@@ -51,21 +51,34 @@ public class Function
                 return new AddProfileServiceResponse(profileServiceRequest.Operation, "400", validationResult.Errors.ToJson(), false, null);
             }
 
-            string operation = profileServiceRequest.Operation;
+            var operation = profileServiceRequest.Operation;
 
             switch (operation)
             {
                 case "CreateProfile":
                     AddProfileModel addProfile =
                         JsonSerializer.Deserialize(profileServiceRequest.Payload, LambdaFunctionJsonSerializerContext.Default.AddProfileModel)!;
-                    ProfileServiceResult result = await profileService.CreateProfileAsync(addProfile);
+                    CreateProfileServiceResult createProfileServiceResult = await profileService.CreateProfileAsync(addProfile);
 
-                    return result.Match(
+                    return createProfileServiceResult.Match(
                         model => new AddProfileServiceResponse(operation, "200", "Created", true, model),
                         validationFailed => new AddProfileServiceResponse(operation, "400", validationFailed.Errors.ToJson(), false, null),
                         awsFailure => new AddProfileServiceResponse(operation, "500", awsFailure.Reason, false, null));
                 case "GetProfile":
-                    return null;
+                    var parsed = Guid.TryParse(profileServiceRequest.Payload, out Guid profileId);
+
+                    if (!parsed)
+                    {
+                        return new GetProfileServiceResponse(operation, "400", "Invalid Profile Id", false, null);
+                    }
+
+                    GetProfileServiceResult getProfileServiceResult = await profileService.GetProfileByIdAsync(profileId);
+
+                    return getProfileServiceResult.Match(
+                        model => new GetProfileServiceResponse(operation, "200", "Success", true, model),
+                        failed => new GetProfileServiceResponse(operation, "400", failed.Errors.ToJson(), false, null),
+                        _ => new GetProfileServiceResponse(operation, "404", "Not Found", false, null),
+                        failure => new GetProfileServiceResponse(operation, "500", failure.Reason, false, null));
                 default:
                     return new AddProfileServiceResponse(operation, "400", "Invalid Operation", false, null);
             }
@@ -114,8 +127,8 @@ public class Function
 
         if (writePayload)
         {
-            logger.LogInformation("Payload: {Payload}",
-                JsonSerializer.Serialize(profileServiceRequest, LambdaFunctionJsonSerializerContext.Default.ProfileServiceRequest));
+            var payload = JsonSerializer.Serialize(profileServiceRequest, LambdaFunctionJsonSerializerContext.Default.ProfileServiceRequest);
+            logger.LogInformation("Payload: {Payload}", payload);
         }
 
         if (writeEnv)
@@ -140,7 +153,7 @@ public class Function
                 ListQueuesResponse listQueuesResponse = await amazonSqs.ListQueuesAsync(new ListQueuesRequest());
 
                 logger.LogInformation("Listing Queues");
-                foreach (string url in listQueuesResponse.QueueUrls)
+                foreach (var url in listQueuesResponse.QueueUrls)
                 {
                     logger.LogInformation("Queue: {QueueUrl}", url);
                 }
@@ -148,7 +161,7 @@ public class Function
                 var amazonSqsConfig = (AmazonSQSConfig)amazonSqs.Config;
 
                 logger.LogInformation("Region: {RegionEndpoint}", amazonSqsConfig.RegionEndpoint);
-                logger.LogInformation("ServiceURL: {ServiceURL}", amazonSqsConfig.ServiceURL);
+                logger.LogInformation("ServiceURL: {ServiceUrl}", amazonSqsConfig.ServiceURL);
 
                 ListBucketsResponse listBucketsResponse = await amazonS3.ListBucketsAsync(new ListBucketsRequest());
 
@@ -159,7 +172,7 @@ public class Function
             }
             catch(Exception ex)
             {
-                logger.LogError("Error while listing resources", ex);
+                logger.LogError(ex, "Error while listing resources");
             }
         }
     }

@@ -28,7 +28,43 @@ public class ProfileService : IProfileService
         _options = profileServiceOptions.Value;
     }
 
-    public async Task<ProfileServiceResult> CreateProfileAsync(AddProfileModel addProfileModel)
+    public async Task<GetProfileServiceResult> GetProfileByIdAsync(Guid id)
+    {
+        if (id == Guid.Empty)
+        {
+            return new ValidationFailed(new ValidationFailure(nameof(id), "Id cannot be empty"));
+        }
+
+        var key = new Dictionary<string, AttributeValue>()
+        {
+            { nameof(ProfileModel.Id), new AttributeValue(id.ToString()) }
+        };
+        
+        GetItemResponse getItemResponse = await _amazonDynamoDb.GetItemAsync(_options.Table, key);
+
+        if (!getItemResponse.HttpStatusCode.IsSuccessStatusCode())
+        {
+            var reason = $"Error getting profile from DynamoDb. StatusCode:{getItemResponse.HttpStatusCode}";
+            return new DynamoDbFailure(reason, _options.Table);
+        }
+
+        if (getItemResponse.Item.Count == 0)
+        {
+            return new NotFound();
+        }
+
+        var profileModel = new ProfileModel(
+            Guid.Parse(getItemResponse.Item[nameof(ProfileModel.Id)].S),
+            getItemResponse.Item[nameof(ProfileModel.Name)].S,
+            getItemResponse.Item[nameof(ProfileModel.Email)].S,
+            getItemResponse.Item[nameof(ProfileModel.ProfilePicUrl)].S,
+            DateTime.Parse(getItemResponse.Item[nameof(ProfileModel.CreatedAt)].S)
+        );
+
+        return profileModel;
+    }
+
+    public async Task<CreateProfileServiceResult> CreateProfileAsync(AddProfileModel addProfileModel)
     {
         ValidationResult validationResult = await _addProfileModelValidator.ValidateAsync(addProfileModel);
 
@@ -52,28 +88,32 @@ public class ProfileService : IProfileService
         }
 
         var id = Guid.NewGuid().ToString();
-        string s3Url = _s3UrlService.GetS3Url(_amazonS3, _options.Bucket, addProfileModel.ProfilePicName);
+        var s3Url = _s3UrlService.GetS3Url(_amazonS3, _options.Bucket, addProfileModel.ProfilePicName);
         DateTime createdAt = DateTime.UtcNow;
 
-        PutItemResponse putItemResponse = await _amazonDynamoDb.PutItemAsync(_options.Table, new Dictionary<string, AttributeValue>()
-        {
-            { nameof(ProfileModel.Id), new AttributeValue(id) },
-            { nameof(ProfileModel.Name), new AttributeValue(addProfileModel.Name) },
-            { nameof(ProfileModel.Email), new AttributeValue(addProfileModel.Email) },
-            { nameof(ProfileModel.ProfilePicUrl), new AttributeValue(s3Url) },
-            { nameof(ProfileModel.CreatedAt), new AttributeValue(createdAt.ToString("O")) }
-        });
+        PutItemResponse putItemResponse = await _amazonDynamoDb.PutItemAsync(_options.Table,
+            new Dictionary<string, AttributeValue>()
+            {
+                { nameof(ProfileModel.Id), new AttributeValue(id) },
+                { nameof(ProfileModel.Name), new AttributeValue(addProfileModel.Name) },
+                { nameof(ProfileModel.Email), new AttributeValue(addProfileModel.Email) },
+                { nameof(ProfileModel.ProfilePicUrl), new AttributeValue(s3Url) },
+                { nameof(ProfileModel.CreatedAt), new AttributeValue(createdAt.ToString("O")) }
+            });
 
         if (!putItemResponse.HttpStatusCode.IsSuccessStatusCode())
         {
-            return new DynamoDbFailure($"Error adding profile to DynamoDb. StatusCode:{putItemResponse.HttpStatusCode}", _options.Table);
+            return new DynamoDbFailure($"Error adding profile to DynamoDb. StatusCode:{putItemResponse.HttpStatusCode}",
+                _options.Table);
         }
 
-        GetQueueUrlResponse queueUrlResponse = await _amazonSqs.GetQueueUrlAsync(new GetQueueUrlRequest(_options.Queue));
+        GetQueueUrlResponse queueUrlResponse =
+            await _amazonSqs.GetQueueUrlAsync(new GetQueueUrlRequest(_options.Queue));
 
         if (!queueUrlResponse.HttpStatusCode.IsSuccessStatusCode())
         {
-            return new SqsFailure($"Error getting queue url.. StatusCode: {queueUrlResponse.HttpStatusCode}", _options.Queue);
+            return new SqsFailure($"Error getting queue url.. StatusCode: {queueUrlResponse.HttpStatusCode}",
+                _options.Queue);
         }
 
         var messageBody = $"Profiled created. {id}-{addProfileModel.Name}-{addProfileModel.Email}";
@@ -87,7 +127,8 @@ public class ProfileService : IProfileService
         SendMessageResponse sendMessageResponse = await _amazonSqs.SendMessageAsync(sendMessageRequest);
 
         return !sendMessageResponse.HttpStatusCode.IsSuccessStatusCode()
-            ? new SqsFailure($"Error sending message to queue. StatusCode: {queueUrlResponse.HttpStatusCode}", _options.Queue)
-            : new ProfileModel(id, addProfileModel.Name, addProfileModel.Email, s3Url, createdAt);
+            ? new SqsFailure($"Error sending message to queue. StatusCode: {queueUrlResponse.HttpStatusCode}",
+                _options.Queue)
+            : new ProfileModel(new Guid(id), addProfileModel.Name, addProfileModel.Email, s3Url, createdAt);
     }
 }

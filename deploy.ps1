@@ -6,7 +6,7 @@ if ($target -eq "localstack") {
     function awsFunc { awslocal @args }
 }
 else {
-    function awsFunc { aws @args --profile personnal }
+    function awsFunc { aws @args --profile personal }
 }
 
 $defaultRegion = "eu-central-1"
@@ -17,7 +17,7 @@ if ($target -eq "localstack") {
 } 
 
 # Known project location and artifact path
-$profileServicePath = ".\src\ProfileService\"
+$profileServicePath = ".\src\LocalStack.Services.ProfileApi\"
 $profileServiceArtifactPath = ".\artifacts\profile-service.zip"
 
 # Derived resource names

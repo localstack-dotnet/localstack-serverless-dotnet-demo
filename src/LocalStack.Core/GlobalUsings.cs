@@ -20,4 +20,5 @@ global using LocalStack.Core.Services.Profile.Models;
 global using Microsoft.Extensions.Logging;
 global using Microsoft.Extensions.Options;
 global using OneOf;
+global using OneOf.Types;
 global using static System.Environment;

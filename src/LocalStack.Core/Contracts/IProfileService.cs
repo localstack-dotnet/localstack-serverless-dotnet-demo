@@ -2,5 +2,7 @@
 
 public interface IProfileService
 {
-    Task<ProfileServiceResult> CreateProfileAsync(AddProfileModel addProfileModel);
+    Task<GetProfileServiceResult> GetProfileByIdAsync(Guid id);
+
+    Task<CreateProfileServiceResult> CreateProfileAsync(AddProfileModel addProfileModel);
 }
