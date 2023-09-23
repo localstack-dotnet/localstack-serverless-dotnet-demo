@@ -20,6 +20,10 @@ if ($target -eq "localstack") {
 $profileServicePath = ".\src\LocalStack.Services.ProfileApi\"
 $profileServiceArtifactPath = ".\artifacts\profile-service.zip"
 
+# Known project location and artifact path for the message handler
+$messageHandlerServicePath = ".\src\LocalStack.Services.MessageHandler\"
+$messageHandlerServiceArtifactPath = ".\artifacts\message-handler-service.zip"
+
 # Derived resource names
 $functionName = "profile-service-demo"
 $roleName = "${functionName}-role"
@@ -27,6 +31,10 @@ $policyName = "${functionName}-policy"
 $bucketName = "${functionName}-bucket"
 $tableName = "${functionName}-table"
 $queueName = "${functionName}-queue"
+
+# Derived resource names for the message handler
+$messageHandlerFunctionName = "message-handler-demo"
+$messagesTableName = "${messageHandlerFunctionName}-table"
 
 # Prompt user for operation
 $operation = Read-Host -Prompt "Enter 'deploy' to create resources or 'cleanup' to delete resources (default is 'deploy')"
@@ -41,9 +49,14 @@ if ($operation -eq "cleanup") {
         Write-Host "Deleting Lambda function..."
         awsFunc lambda delete-function --function-name $functionName
 
+        # Delete the message handler Lambda function
+        Write-Host "Deleting message handler Lambda function..."
+        awsFunc lambda delete-function --function-name $messageHandlerFunctionName
+
         # Detach Basic Execution role policy and delete the IAM role
         Write-Host "Detaching basic execution policy from role..."
         awsFunc iam detach-role-policy --role-name $roleName --policy-arn arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole
+        
         Write-Host "Deleting IAM role..."
         awsFunc iam delete-role --role-name $roleName
 
@@ -56,9 +69,14 @@ if ($operation -eq "cleanup") {
         Write-Host "Deleting DynamoDB table..."
         awsFunc dynamodb delete-table --table-name $tableName
 
+        # Delete the Messages DynamoDB table
+        Write-Host "Deleting Messages DynamoDB table..."
+        awsFunc dynamodb delete-table --table-name $messagesTableName
+
         # Delete the S3 bucket (ensure it is empty first)
         Write-Host "Emptying S3 bucket..."
         awsFunc s3 rm s3://$bucketName --recursive
+
         Write-Host "Deleting S3 bucket..."
         awsFunc s3api delete-bucket --bucket $bucketName
 
@@ -114,6 +132,19 @@ else {
     Write-Host "DynamoDB table already exists, skipping creation."
 }
 
+$checkMessagesTableCommand = { awsFunc dynamodb describe-table --table-name $messagesTableName }
+$messagesTableExists = IsResourceExists "DynamoDB table (messages)" $messagesTableName $checkMessagesTableCommand
+
+if ($messagesTableExists -eq "0") {
+    # Create DynamoDB table for messages
+    Write-Host "Creating DynamoDB table (messages)..."
+    awsFunc dynamodb create-table --table-name $messagesTableName --attribute-definitions 'AttributeName=Id,AttributeType=S' --key-schema 'AttributeName=Id,KeyType=HASH' --provisioned-throughput 'ReadCapacityUnits=5,WriteCapacityUnits=5'
+}
+else {
+    Write-Host "DynamoDB table (messages) already exists, skipping creation."
+}
+
+
 $checkQueueCommand = { awsFunc sqs get-queue-url --queue-name $queueName }
 $queueExists = IsResourceExists "SQS queue" $queueName $checkQueueCommand
 
@@ -166,11 +197,12 @@ if ($roleExists -eq "0") {
                 Resource = @(
                     "arn:aws:s3:::$bucketName/*",
                     "arn:aws:dynamodb:*:*:table/$tableName",
-                    "arn:aws:sqs:*:*:$queueName"
+                    "arn:aws:sqs:*:*:$queueName",
+                    "arn:aws:dynamodb:*:*:table/$messagesTableName"
                 )
             }
         )
-    }
+    }    
 
     # Convert policy to JSON
     $permissionPolicyJson = $permissionPolicy | ConvertTo-Json -Depth 10
@@ -202,8 +234,8 @@ $lambdaFunctionExists = IsResourceExists "Lambda function" $functionName $checkL
 if ($lambdaFunctionExists -eq "0") {
 
     # Package Lambda function
-    Write-Host "Packaging Lambda function..."
-    dotnet lambda package --project-location $profileServicePath --output-package $profileServiceArtifactPath
+    # Write-Host "Packaging Lambda function..."
+    # dotnet lambda package --project-location $profileServicePath --output-package $profileServiceArtifactPath
 
     # Create Lambda function
     Write-Host "Creating Lambda function..."
@@ -225,5 +257,41 @@ else {
         Write-Host "Skipping update of Lambda function."
     }
 }
+
+$checkMessageHandlerLambdaCommand = { awsFunc lambda get-function --function-name $messageHandlerFunctionName }
+$messageHandlerFunctionExists = IsResourceExists "Lambda function (message handler)" $messageHandlerFunctionName $checkMessageHandlerLambdaCommand
+
+if ($messageHandlerFunctionExists -eq "0") {
+    # Package message handler Lambda function
+    Write-Host "Packaging message handler Lambda function..."
+    dotnet lambda package --project-location $messageHandlerServicePath --output-package $messageHandlerServiceArtifactPath
+
+    # Create message handler Lambda function
+    Write-Host "Creating message handler Lambda function..."
+    $roleArn = awsFunc iam get-role --role-name $roleName --query Role.Arn --output text
+    awsFunc lambda create-function --function-name $messageHandlerFunctionName --zip-file fileb://$messageHandlerServiceArtifactPath --handler "LocalStack.Services.MessageHandler::LocalStack.Services.MessageHandler.Function::FunctionHandler" --runtime dotnet6 --role $roleArn --environment Variables="{DOTNET_ENVIRONMENT=$lambdaDotNetEnv}" --memory-size 256 --timeout 30
+
+    # Link SQS queue to the Lambda function
+    $queueUrl = awsFunc sqs get-queue-url --queue-name $queueName --query QueueUrl --output text
+    $queueAttributes = awsFunc sqs get-queue-attributes --queue-url $queueUrl --attribute-names QueueArn
+    $queueArn = $queueAttributes | ConvertFrom-Json | Select-Object -ExpandProperty Attributes | Select-Object -ExpandProperty QueueArn
+    awsFunc lambda create-event-source-mapping --event-source-arn $queueArn --function-name $messageHandlerFunctionName --batch-size 5 
+}
+else {
+    $update = Read-Host -Prompt "Message handler Lambda function already exists. Do you want to update it? (yes/no)"
+    if ($update -eq "yes") {
+        # Package message handler Lambda function
+        Write-Host "Packaging message handler Lambda function..."
+        dotnet lambda package --project-location $messageHandlerServicePath --output-package $messageHandlerServiceArtifactPath
+
+        # Update message handler Lambda function
+        Write-Host "Updating message handler Lambda function..."
+        awsFunc lambda update-function-code --function-name $messageHandlerFunctionName --zip-file fileb://$messageHandlerServiceArtifactPath
+    }
+    else {
+        Write-Host "Skipping update of message handler Lambda function."
+    }
+}
+
 
 Write-Host "Setup complete!"

@@ -5,6 +5,7 @@ global using System.Text.Json;
 global using System.Text.Json.Serialization;
 global using Amazon.DynamoDBv2;
 global using Amazon.DynamoDBv2.Model;
+global using Amazon.Lambda.SQSEvents;
 global using Amazon.S3;
 global using Amazon.S3.Transfer;
 global using Amazon.SQS;

@@ -42,6 +42,6 @@
       </None>
     </ItemGroup>
     <ItemGroup>
-      <ProjectReference Include="..\..\..\LocalStack.Core\LocalStack.Core.csproj" />
+      <ProjectReference Include="..\LocalStack.Core\LocalStack.Core.csproj" />
     </ItemGroup>
 </Project>
