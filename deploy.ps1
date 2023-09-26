@@ -1,20 +1,39 @@
+$env:AWS_PAGER = ""
+
 # Prompt user for deployment target
 $target = Read-Host -Prompt "Enter 'aws' for AWS or 'localstack' for LocalStack (default is 'localstack')"
 if (-not $target) { $target = 'localstack' }
 
-if ($target -eq "localstack") {
-    function awsFunc { awslocal @args }
+if ($target -eq "aws") {
+    $profileName = Read-Host -Prompt "Enter AWS profile name"
+    if (-not $profileName) {
+        Write-Host "Please provide a valid AWS profile name."
+        return
+    }
+    function awsFunc { aws @args --profile $profileName }
 }
 else {
-    function awsFunc { aws @args --profile personal }
+    function awsFunc { awslocal @args }
 }
 
-$defaultRegion = "eu-central-1"
+# Prompt the user for AWS region
+$enteredRegion = Read-Host -Prompt "Enter AWS region (default is 'eu-central-1')"
+$defaultRegion = if (-not $enteredRegion) { "eu-central-1" } else { $enteredRegion }
+
 $lambdaDotNetEnv = "Production"
 
 if ($target -eq "localstack") {
     $lambdaDotNetEnv = "Development"
 } 
+
+# Fetch AWS account ID
+$accountID = awsFunc sts get-caller-identity --query Account --output text
+
+# Check if the command succeeded
+if (-not $accountID) {
+    Write-Host "Failed to fetch AWS account ID. Exiting script."
+    return
+}
 
 # Known project location and artifact path
 $profileServicePath = ".\src\LocalStack.Services.ProfileApi\"
@@ -53,9 +72,21 @@ if ($operation -eq "cleanup") {
         Write-Host "Deleting message handler Lambda function..."
         awsFunc lambda delete-function --function-name $messageHandlerFunctionName
 
-        # Detach Basic Execution role policy and delete the IAM role
-        Write-Host "Detaching basic execution policy from role..."
-        awsFunc iam detach-role-policy --role-name $roleName --policy-arn arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole
+        # Get a list of all policies attached to the role
+        $policies = awsFunc iam list-attached-role-policies --role-name $roleName --query 'AttachedPolicies[].PolicyArn' | ConvertFrom-Json
+
+        # Detach each policy
+        foreach ($policyArn in $policies) {
+            Write-Host "Detaching policy $policyArn from role $roleName..."
+            awsFunc iam detach-role-policy --role-name $roleName --policy-arn $policyArn
+
+            # Only delete customer-managed policies
+            if ($policyArn -like "*:iam::${accountID}:policy/*") { 
+                # Delete the policy
+                Write-Host "Deleting customer-managed policy: $policyArn"
+                awsFunc iam delete-policy --policy-arn $policyArn
+            }
+        }
         
         Write-Host "Deleting IAM role..."
         awsFunc iam delete-role --role-name $roleName
@@ -63,7 +94,22 @@ if ($operation -eq "cleanup") {
         # Delete the SQS queue
         Write-Host "Deleting SQS queue..."
         $queueUrl = awsFunc sqs get-queue-url --queue-name $queueName --query QueueUrl --output text
+        $queueAttributes = awsFunc sqs get-queue-attributes --queue-url $queueUrl --attribute-names QueueArn
+        $queueArn = $queueAttributes | ConvertFrom-Json | Select-Object -ExpandProperty Attributes | Select-Object -ExpandProperty QueueArn
         awsFunc sqs delete-queue --queue-url $queueUrl
+
+        Write-Host "Deleting event source mappings..."
+        $existingMappings = awsFunc lambda list-event-source-mappings --function-name message-handler-demo | ConvertFrom-Json | Select-Object -ExpandProperty EventSourceMappings | Where-Object { $_.EventSourceArn -eq $queueArn }
+
+        foreach ($mapping in $existingMappings) {
+            $mappingUUID = $mapping.UUID
+            
+            if ($mappingUUID) {
+                Write-Host "Deleting event source mapping with UUID: $mappingUUID..."
+                awsFunc lambda delete-event-source-mapping --uuid $mappingUUID
+            }
+        }
+        
 
         # Delete the DynamoDB table
         Write-Host "Deleting DynamoDB table..."
@@ -211,10 +257,25 @@ if ($roleExists -eq "0") {
     $tempFilePermissionPolicy = [System.IO.Path]::GetTempFileName()
     Set-Content -Path $tempFilePermissionPolicy -Value $permissionPolicyJson
 
-    # Create the policy using the temporary file
-    $policyArn = awsFunc iam create-policy --policy-name $policyName --policy-document file://$tempFilePermissionPolicy --query 'Policy.Arn' --output text
+    # Check if the policy exists
+    $policyArnStr = "arn:aws:iam::${accountID}:policy/$policyName"
+    Write-Host $policyArnStr
+    $checkPolicyCommand = { awsFunc iam get-policy --policy-arn $policyArnStr }
+    $policyExists = IsResourceExists "IAM policy" $policyName $checkPolicyCommand
+
+    if ($policyExists -eq "0") {
+        # Create the policy
+        Write-Host "Creating IAM policy..."
+        $policyArn = awsFunc iam create-policy --policy-name $policyName --policy-document file://$tempFilePermissionPolicy --query 'Policy.Arn' --output text
+    }
+    else {
+        Write-Host "IAM policy already exists. Retrieving its ARN..."
+        # $policyArn = awsFunc iam get-policy --policy-name $policyName --query Policy.Arn --output text
+        $policyArn = awsFunc iam get-policy --policy-arn $policyArnStr --query Policy.Arn --output text
+    }
 
     # Attach the policy to the role
+    Write-Host "Attaching $policyName to role..."
     awsFunc iam attach-role-policy --role-name $roleName --policy-arn $policyArn
 
     # Optionally, remove the temporary file
@@ -233,9 +294,19 @@ $lambdaFunctionExists = IsResourceExists "Lambda function" $functionName $checkL
 
 if ($lambdaFunctionExists -eq "0") {
 
-    # Package Lambda function
-    # Write-Host "Packaging Lambda function..."
-    # dotnet lambda package --project-location $profileServicePath --output-package $profileServiceArtifactPath
+    if (Test-Path $profileServiceArtifactPath) {
+        $repackageProfile = Read-Host -Prompt "Do you want to repackage the profile Lambda function? Existing zip file detected. (yes/no) (default is 'no')"
+        if (-not $repackageProfile) { $repackageProfile = 'no' }
+    }
+    else {
+        $repackageProfile = "yes"
+    }
+    
+    if ($repackageProfile -eq "yes") {
+        # Package Lambda function
+        Write-Host "Packaging profile Lambda function..."
+        dotnet lambda package --project-location $profileServicePath --output-package $profileServiceArtifactPath
+    }
 
     # Create Lambda function
     Write-Host "Creating Lambda function..."
@@ -245,9 +316,20 @@ if ($lambdaFunctionExists -eq "0") {
 else {
     $update = Read-Host -Prompt "Lambda function already exists. Do you want to update it? (yes/no)"
     if ($update -eq "yes") {
-        # Package Lambda function
-        Write-Host "Packaging Lambda function..."
-        dotnet lambda package --project-location $profileServicePath --output-package $profileServiceArtifactPath
+
+        if (Test-Path $profileServiceArtifactPath) {
+            $repackageProfile = Read-Host -Prompt "Do you want to repackage the profile Lambda function? Existing zip file detected. (yes/no) (default is 'no')"
+            if (-not $repackageProfile) { $repackageProfile = 'no' }
+        }
+        else {
+            $repackageProfile = "yes"
+        }
+        
+        if ($repackageProfile -eq "yes") {
+            # Package Lambda function
+            Write-Host "Packaging profile Lambda function..."
+            dotnet lambda package --project-location $profileServicePath --output-package $profileServiceArtifactPath
+        }
 
         # Update Lambda function
         Write-Host "Updating Lambda function..."
@@ -262,9 +344,20 @@ $checkMessageHandlerLambdaCommand = { awsFunc lambda get-function --function-nam
 $messageHandlerFunctionExists = IsResourceExists "Lambda function (message handler)" $messageHandlerFunctionName $checkMessageHandlerLambdaCommand
 
 if ($messageHandlerFunctionExists -eq "0") {
-    # Package message handler Lambda function
-    Write-Host "Packaging message handler Lambda function..."
-    dotnet lambda package --project-location $messageHandlerServicePath --output-package $messageHandlerServiceArtifactPath
+    
+    if (Test-Path $messageHandlerServiceArtifactPath) {
+        $repackageMessageHandler = Read-Host -Prompt "Do you want to repackage the message handler Lambda function? Existing zip file detected. (yes/no) (default is 'no')"
+        if (-not $repackageMessageHandler) { $repackageMessageHandler = 'no' }
+    }
+    else {
+        $repackageMessageHandler = "yes"
+    }
+    
+    if ($repackageMessageHandler -eq "yes") {
+        # Package message handler Lambda function
+        Write-Host "Packaging message handler Lambda function..."
+        dotnet lambda package --project-location $messageHandlerServicePath --output-package $messageHandlerServiceArtifactPath
+    }
 
     # Create message handler Lambda function
     Write-Host "Creating message handler Lambda function..."
@@ -275,14 +368,46 @@ if ($messageHandlerFunctionExists -eq "0") {
     $queueUrl = awsFunc sqs get-queue-url --queue-name $queueName --query QueueUrl --output text
     $queueAttributes = awsFunc sqs get-queue-attributes --queue-url $queueUrl --attribute-names QueueArn
     $queueArn = $queueAttributes | ConvertFrom-Json | Select-Object -ExpandProperty Attributes | Select-Object -ExpandProperty QueueArn
+
+    $existingMappings = awsFunc lambda list-event-source-mappings --function-name $messageHandlerFunctionName | ConvertFrom-Json | Select-Object -ExpandProperty EventSourceMappings | Where-Object { $_.EventSourceArn -eq $queueArn }
+
+    if ($existingMappings.Count -eq 0) {
+        Write-Host "No existing event source mapping found."
+    }
+    else {
+        foreach ($mapping in $existingMappings) {
+            $mappingUUID = $mapping.UUID
+    
+            if ($mappingUUID) {
+                Write-Host "Deleting event source mapping with UUID: $mappingUUID..."
+                awsFunc lambda delete-event-source-mapping --uuid $mappingUUID
+
+                # Wait for 5 seconds
+                Write-Host "Waiting for 5 seconds..."
+                Start-Sleep -Seconds 5
+            }
+        }
+    }
+    
     awsFunc lambda create-event-source-mapping --event-source-arn $queueArn --function-name $messageHandlerFunctionName --batch-size 5 
 }
 else {
     $update = Read-Host -Prompt "Message handler Lambda function already exists. Do you want to update it? (yes/no)"
     if ($update -eq "yes") {
-        # Package message handler Lambda function
-        Write-Host "Packaging message handler Lambda function..."
-        dotnet lambda package --project-location $messageHandlerServicePath --output-package $messageHandlerServiceArtifactPath
+
+        if (Test-Path $messageHandlerServiceArtifactPath) {
+            $repackageMessageHandler = Read-Host -Prompt "Do you want to repackage the message handler Lambda function? Existing zip file detected. (yes/no) (default is 'no')"
+            if (-not $repackageMessageHandler) { $repackageMessageHandler = 'no' }
+        }
+        else {
+            $repackageMessageHandler = "yes"
+        }
+        
+        if ($repackageMessageHandler -eq "yes") {
+            # Package message handler Lambda function
+            Write-Host "Packaging message handler Lambda function..."
+            dotnet lambda package --project-location $messageHandlerServicePath --output-package $messageHandlerServiceArtifactPath
+        }
 
         # Update message handler Lambda function
         Write-Host "Updating message handler Lambda function..."
@@ -292,6 +417,5 @@ else {
         Write-Host "Skipping update of message handler Lambda function."
     }
 }
-
 
 Write-Host "Setup complete!"

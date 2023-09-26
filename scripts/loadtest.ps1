@@ -1,12 +1,19 @@
+$env:AWS_PAGER = ""
+
 # Prompt user for deployment target
 $target = Read-Host -Prompt "Enter 'aws' for AWS or 'localstack' for LocalStack (default is 'localstack')"
 if (-not $target) { $target = 'localstack' }
 
-if ($target -eq "localstack") {
-    function awsFunc { awslocal @args }
+if ($target -eq "aws") {
+    $profileName = Read-Host -Prompt "Enter AWS profile name"
+    if (-not $profileName) {
+        Write-Host "Please provide a valid AWS profile name."
+        return
+    }
+    function awsFunc { aws @args --profile $profileName }
 }
 else {
-    function awsFunc { aws @args --profile personnal }
+    function awsFunc { awslocal @args }
 }
 
 # Number of requests

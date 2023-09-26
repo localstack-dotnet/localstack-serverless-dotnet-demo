@@ -1,0 +1,15 @@
+# Start from the .NET build image
+FROM public.ecr.aws/sam/build-dotnet7:latest-x86_64
+
+# Set workdir
+WORKDIR /app
+
+# Copy only necessary files
+COPY ./src/LocalStack.Services.ProfileApi/ ./src/LocalStack.Services.ProfileApi/
+COPY ./src/LocalStack.Core/ ./src/LocalStack.Core/
+
+# You can also install zip if it's not available in the base image
+# RUN apt-get update && apt-get install -y zip
+
+# The command to run when the container starts, this can be overridden when running the container
+CMD ["dotnet", "--version"]
