@@ -1,3 +1,7 @@
+using Serilog;
+using Serilog.Formatting.Json;
+using ILogger = Microsoft.Extensions.Logging.ILogger;
+
 [assembly: LambdaSerializer(typeof(SourceGeneratorLambdaJsonSerializer<LambdaFunctionJsonSerializerContext>))]
 
 namespace LocalStack.Services.MessageHandler;
@@ -65,13 +69,19 @@ public class Function
 
     private ServiceProvider ConfigureServices(IServiceCollection serviceCollection)
     {
+        // initialize serilog's logger property with valid configuration
+        LoggerConfiguration loggerConfiguration = new LoggerConfiguration()
+            .ReadFrom.Configuration(Configuration)
+            .WriteTo.Console(new JsonFormatter());
+
         serviceCollection
             .AddLocalStack(Configuration)
             .AddAWSServiceLocalStack<IAmazonDynamoDB>()
             .AddTransient<IMessageService, MessageService>()
             .AddValidatorsFromAssemblyContaining<ProfileServiceRequestValidator>()
-            .AddLogging(builder => builder.AddLambdaLogger(new LambdaLoggerOptions(Configuration)))
-            .Configure<MessageServiceOptions>(Configuration.GetSection("MessageService"));
+            .Configure<MessageServiceOptions>(Configuration.GetSection("MessageService"))
+            .AddLogging(builder => builder.AddSerilog(loggerConfiguration.CreateLogger()));
+                
 
         return serviceCollection.BuildServiceProvider();
     }
@@ -82,7 +92,7 @@ public class Function
         LocalStackOptions localStackOptions = ServiceProvider.GetRequiredService<IOptions<LocalStackOptions>>().Value;
 
         logger.LogInformation("DOTNET_ENVIRONMENT: {DotnetEnv}", DotnetEnv);
-        logger.LogInformation("ProfileServiceOptions: {@MessageServiceOptions}", messageServiceOptions);
+        logger.LogInformation("MessageServiceOptions: {@MessageServiceOptions}", messageServiceOptions);
 
         if (localStackOptions.UseLocalStack)
         {

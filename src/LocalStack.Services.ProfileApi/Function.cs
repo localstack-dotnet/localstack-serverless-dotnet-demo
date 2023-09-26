@@ -1,12 +1,15 @@
+using Serilog;
+using Serilog.Formatting.Json;
+
 namespace LocalStack.Services.ProfileApi;
 
 public class Function
 {
     private static readonly string DotnetEnv = GetEnvironmentVariable("DOTNET_ENVIRONMENT") ?? GetEnvironmentVariable("ASPNETCORE_ENVIRONMENT") ?? "Development";
 
-    private static IConfiguration Configuration { get; set; }
+    private static IConfiguration? Configuration { get; set; }
 
-    private static IServiceProvider ServiceProvider { get; set; }
+    private static IServiceProvider? ServiceProvider { get; set; }
 
 
     [RequiresDynamicCode("Calls ProfileService.Function.ConfigureServices(IServiceCollection)")]
@@ -94,6 +97,11 @@ public class Function
     [RequiresUnreferencedCode("Calls Microsoft.Extensions.DependencyInjection.OptionsConfigurationServiceCollectionExtensions.Configure<TOptions>(IConfiguration)")]
     private static ServiceProvider ConfigureServices(IServiceCollection serviceCollection)
     {
+        // initialize serilog's logger property with valid configuration
+        LoggerConfiguration loggerConfiguration = new LoggerConfiguration()
+            .ReadFrom.Configuration(Configuration)
+            .WriteTo.Console(new JsonFormatter());
+        
         serviceCollection
             .AddLocalStack(Configuration)
             .AddAWSServiceLocalStack<IAmazonS3>()
@@ -102,8 +110,8 @@ public class Function
             .AddTransient<IProfileService, ProfileService>()
             .AddTransient<IS3UrlService, S3UrlService>()
             .AddValidatorsFromAssemblyContaining<ProfileServiceRequestValidator>()
-            .AddLogging(builder => builder.AddLambdaLogger(new LambdaLoggerOptions(Configuration)))
-            .Configure<ProfileServiceOptions>(Configuration.GetSection("ProfileService"));
+            .Configure<ProfileServiceOptions>(Configuration.GetSection("ProfileService"))
+            .AddLogging(builder => builder.AddSerilog(loggerConfiguration.CreateLogger()));
 
         return serviceCollection.BuildServiceProvider();
     }
