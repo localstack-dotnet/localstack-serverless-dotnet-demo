@@ -8,5 +8,6 @@
     "**/obj": true,
     "**/bin": true,
     "**/node_modules": true,
-  }
+  },
+  "dotnet.defaultSolution": "LocalStack.sln"
 }

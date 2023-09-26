@@ -1,0 +1,4 @@
+{
+  "Operation": "CreateProfile",
+  "Payload": "{\"Operation\":\"CreateProfile\",\"Payload\":{\"Name\":\"William Brown\",\"Email\":\"william.brown@example.com\",\"ProfilePicName\":\"profile-pic-williambrown.jpg\",\"ProfilePicBase64\":\"<Base64 String Placeholder>\"}}"
+}
