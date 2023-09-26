@@ -60,27 +60,32 @@ for ((i = 0; i < $x; i++)); do
 
     base64Data="/9j/4QDeRXhpZgAASUkqAAgAAAAGABIBAwABAAAAAQAAABoBBQABAAAAVgAAABsBBQABAAAAXgAAACgBAwABAAAAAgAAABMCAwABAAAAAQAAAGmHBAABAAAAZgAAAAAAAABIAAAAAQAAAEgAAAABAAAABwAAkAcABAAAADAyMTABkQcABAAAAAECAwCGkgcAFgAAAMAAAAAAoAcABAAAADAxMDABoAMAAQAAAP//AAACoAQAAQAAADIAAAADoAQAAQAAADIAAAAAAAAAQVNDSUkAAABQaWNzdW0gSUQ6IDgxOf/bAEMACAYGBwYFCAcHBwkJCAoMFA0MCwsMGRITDxQdGh8eHRocHCAkLicgIiwjHBwoNyksMDE0NDQfJzk9ODI8LjM0Mv/bAEMBCQkJDAsMGA0NGDIhHCEyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMv/CABEIADIAMgMBIgACEQEDEQH/xAAaAAACAwEBAAAAAAAAAAAAAAAABAIDBQEG/8QAFgEBAQEAAAAAAAAAAAAAAAAAAAEC/9oADAMBAAIQAxAAAAHxtcWal2yUI2NZtXlYTckzm0dv5ZXn7KyoDpNKtaVtyhLQ5N5am7Tc4ptDO5MNYlEDkASAB//EACMQAAEEAQMEAwAAAAAAAAAAAAEAAgMREgQTFAUVIUIgIjL/2gAIAQEAAQUC3QryQCq1+TvU3MKvMeNHCo9tPwVeKajGUzTPLTpJENNI9O0kuOwbxXq0PLcX5Na8ICVe9LJNnkjaJ5a35ZDypnIv+1o9OBHAYR29oA6ewDgxhdvZfCah8//EABwRAAICAgMAAAAAAAAAAAAAAAARAQIQEiAhIv/aAAgBAwEBPwEeZyisw+zaiLzD8j4//8QAGBEAAwEBAAAAAAAAAAAAAAAAAREgABD/2gAIAQIBAT8Bt8Rwr//EACgQAAECBQEHBQAAAAAAAAAAAAEAEQIDECExExIiMjNRYZEjMEGBof/aAAgBAQAGPwLC7VcJmrcLhyiIoSVaGmE6cMvhagbeRO6yzWzlNd+iALjoruPpGvpxmG91qap1MOnjmEmG47JpkwxQtimVzPxNtotMOFeaXd1zCn1T4XGPHsf/xAAfEAADAQACAgMBAAAAAAAAAAAAAREhMUFRYRBxgSD/2gAIAQEAAT8hJrrwKg0SyZ2PkoxfcORQ4JqVCdoRaNcIZPJCEfrwndfwGMdmqSs3yPypVemMFUvIoCgq2QhiPBkaIl+lK9ei33WH5E9M8SP2eBZzQ7o7p+BQpz7Ft2eDvB9sFRPVEsdSr7E75MexdmqqfaS1pehIuo7iFuU4VX6eRMYWY7PBp5H8iG/hsrP/2gAMAwEAAgADAAAAELL5PJlcAnw7T/fI/wD/xAAcEQADAAMAAwAAAAAAAAAAAAAAAREQITFRcaH/2gAIAQMBAT8QR4FhWJDQlcIr5HUkt34N1we2Hn//xAAZEQADAQEBAAAAAAAAAAAAAAAAAREhEEH/2gAIAQIBAT8QpBbys0rKGsw0EfpOLv8A/8QAIRABAAICAQUBAQEAAAAAAAAAAQARITFBUWFxkaGB8MH/2gAIAQEAAT8QAU8JY7rMEOXpkNRUF0BTGvSN94duypf1cWF2ILaArBKg2HcI9wEOPsdTcKuvsvnsFc+4kOgxU72Y0QwoZXEbu0wLSDVgLwYw/wCzXowrFimvyDFlkcgFruKbGqduSrn9li0eFxSrKFQDLwiZpHPIEutziceVraq5411g9A2sGcdfMuzm1urga16wFKkdsbmDsNRiDqd4nVwQsrx9lVCSF0uTHiVyKyAWKb1ACXFFc57wIV8mHGAjg4hVyTAyoGfUEMjAoN5P6EKgEMWrpEO2WF/kgjsPgiN8oFOlSrBWf3iajCG43V0RW9sSnLO4+5//2Q=="
 
-    # Payload with randomized properties
-    payload=$(jq -n \
+    # Create the inner payload
+    innerPayload=$(jq -c -n \
         --arg n "$name" \
         --arg e "$email" \
         --arg p "$profilePicName" \
         --arg b64 "$base64Data" \
         '{
-        "Operation": "CreateProfile",
-        "Payload": {
-            "Name": $n,
-            "Email": $e,
-            "ProfilePicName": $p,
-            "ProfilePicBase64": $b64
-        }
-    }')
+"Name": $n,
+"Email": $e,
+"ProfilePicName": $p,
+"ProfilePicBase64": $b64
+}')
 
-    echo $payload
+    # Place the raw string of the inner payload into the outer payload
+    payload=$(jq -c -n \
+        --arg innerPayload "$innerPayload" \
+        '{
+"Operation": "CreateProfile",
+"Payload": $innerPayload
+}')
 
     # Invoke the Lambda function and store the response
     responseFile="response_${i}.json"
     awsFunc lambda invoke --function-name $functionName --payload "$payload" $responseFile --log-type Tail
+
+    # rm -f $tempFilePayload
 
     responseContent=$(cat $responseFile)
     responses+=("$responseContent")
