@@ -4,7 +4,7 @@ This repository showcases a serverless application using .NET 6 and .NET 7 with 
 
 ## Overview
 
-![Demo](https://raw.githubusercontent.com/localstack-dotnet/localstack-serverless-dotnet-demo/master/assets/architecture-non-transparent.drawio.svg)
+![Demo](https://raw.githubusercontent.com/localstack-dotnet/localstack-serverless-dotnet-demo/master/assets/architecture-non-transparent.drawio.png)
 
 The demo consists of two AWS Lambda functions:
 
