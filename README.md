@@ -1,6 +1,6 @@
 # Serverless Demo with LocalStack and .NET
 
-This repository showcases a serverless application using .NET 6 and .NET 7 with LocalStack, a fully functional local AWS cloud stack.
+This repository showcases a serverless application using .NET 6 and .NET 7 with [LocalStack](https://github.com/localstack/localstack), a fully functional local AWS cloud stack and [LocalStack.NET](https://github.com/localstack-dotnet/localstack-dotnet-client),  a thin wrapper around [aws-sdk-net](https://github.com/aws/aws-sdk-net) which automatically configures the target endpoints to use LocalStack for your local cloud application development.
 
 ## Overview
 
