@@ -318,7 +318,7 @@ if ($lambdaFunctionExists -eq "0") {
     # Create Lambda function
     Write-Host "Creating Lambda function..."
     $roleArn = awsFunc iam get-role --role-name $roleName --query Role.Arn --output text
-    awsFunc lambda create-function --function-name $functionName --zip-file fileb://$profileServiceArtifactPath --handler "LocalStack.Services.ProfileApi::LocalStack.Services.ProfileApi.Function::FunctionHandler" --runtime dotnet8 --role $roleArn --environment Variables="{DOTNET_ENVIRONMENT=$lambdaDotNetEnv}" --memory-size 256 --timeout 30
+    awsFunc lambda create-function --function-name $functionName --zip-file fileb://$profileServiceArtifactPath --handler bootstrap --runtime dotnet8 --role $roleArn --environment Variables="{DOTNET_ENVIRONMENT=$lambdaDotNetEnv}" --memory-size 256 --timeout 30
 }
 else {
     $update = Read-Host -Prompt "Lambda function already exists. Do you want to update it? (yes/no)"

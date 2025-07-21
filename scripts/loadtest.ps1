@@ -13,7 +13,14 @@ if ($target -eq "aws") {
     function awsFunc { aws @args --profile $profileName }
 }
 else {
-    function awsFunc { awslocal @args }
+    function awsFunc { 
+        $env:AWS_ACCESS_KEY_ID = "test"
+        $env:AWS_SECRET_ACCESS_KEY = "test"
+        $env:AWS_DEFAULT_REGION = "eu-central-1"
+        $hostName = if ($env:LOCALSTACK_HOST) { $env:LOCALSTACK_HOST } else { 'localhost.localstack.cloud' }
+        $endpointUrl = "http://${hostName}:4566"
+        aws $args --endpoint-url $endpointUrl
+    }
 }
 
 # Number of requests

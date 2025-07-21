@@ -1,34 +1,43 @@
 # Serverless Demo with LocalStack and .NET
 
-This repository showcases a serverless application using .NET 6 and .NET 7 with [LocalStack](https://github.com/localstack/localstack), a fully functional local AWS cloud stack and [LocalStack.NET](https://github.com/localstack-dotnet/localstack-dotnet-client),  a thin wrapper around [aws-sdk-net](https://github.com/aws/aws-sdk-net) which automatically configures the target endpoints to use LocalStack for your local cloud application development.
+This repository showcases a serverless application using .NET 8 with [LocalStack](https://github.com/localstack/localstack), a fully functional local AWS cloud stack and [LocalStack.NET](https://github.com/localstack-dotnet/localstack-dotnet-client) v2.0.0-preview1, a thin wrapper around [aws-sdk-net](https://github.com/aws/aws-sdk-net) which automatically configures the target endpoints to use LocalStack for your local cloud application development.
 
 ## Overview
 
 ![Demo](https://raw.githubusercontent.com/localstack-dotnet/localstack-serverless-dotnet-demo/master/assets/architecture-non-transparent.drawio.png)
 
-The demo consists of two AWS Lambda functions:
+The demo consists of two AWS Lambda functions showcasing modern .NET development practices:
 
-1. **Profile API (.NET 7 and NativeAOT):** 
-  - **Create Profile Operation:**
-    - Creates a user profile in the profiles DynamoDB table.
-    - Decodes and saves a base64 image from the payload to the profile images S3 Bucket.
-    - Sends a success message to the messages SQS.
-  - **Get Profile Operation:**
-    - Retrieves the user profile from the profiles DynamoDB table.
+1. **Profile API (.NET 8):**
 
-The Profile API is developed using .NET 7 and NativeAOT. With .NET 7 Native AOT compilation, you can improve the cold-start times of your Lambda functions. To learn more about Native AOT for .NET 7, see [Using Native AOT in the Dotnet GitHub repository](https://github.com/dotnet/runtime/tree/main/src/coreclr/nativeaot#readme).
+- **Create Profile Operation:**
+  - Creates a user profile in the profiles DynamoDB table.
+  - Decodes and saves a base64 image from the payload to the profile images S3 Bucket.
+  - Sends a success message to the messages SQS.
+- **Get Profile Operation:**
+  - Retrieves the user profile from the profiles DynamoDB table.
 
-2. **Message Handler (.NET 6):**
-  - Processes the success message from the messages SQS.
-  - Saves the success message to the messages DynamoDB table.
+The Profile API is developed using .NET 8 as a standard AWS Lambda function. Native AOT compilation has been temporarily disabled to focus on testing LocalStack.NET v2.0.0-preview1 compatibility. Native AOT support will be re-enabled in future versions once LocalStack.NET has enhanced Native AOT compatibility.
 
-The Message Handler is developed using .NET 6 as a standard AWS Lambda.
+2. **Message Handler (.NET 8):**
+
+- Processes the success message from the messages SQS.
+- Saves the success message to the messages DynamoDB table.
+
+The Message Handler is developed using .NET 8 as a standard AWS Lambda with optimized performance.
+
+## Modern .NET Features Showcased
+
+- **Centralized Package Management**: Using Directory.Build.props and Directory.Packages.props for consistent dependency management
+- **.NET 8**: Stable runtime with excellent performance for serverless scenarios
+- **LocalStack.NET v2.0.0-preview1**: Testing the latest preview with AWS SDK v4 compatibility
+- **Modern AWS SDK v4**: Latest AWS SDK packages with improved performance and features
+- **Future Native AOT Support**: Framework prepared for Native AOT when LocalStack.NET compatibility is enhanced
 
 ## Prerequisites
 
-- **.NET 7**: [Download .NET 7](https://dotnet.microsoft.com/en-us/download/dotnet/7.0)
-- **.NET 6**: [Download .NET 6](https://dotnet.microsoft.com/en-us/download/dotnet/6.0)
-- **Amazon.Lambda.Tools (.NET global tool)**: [Amazon.Lambda.Tools on NuGet](https://www.nuget.org/packages/Amazon.Lambda.Tools/). Install using the command: `dotnet tool install --global Amazon.Lambda.Tools --version 5.8.0`. This tool allows you to pack and deploy a Lambda function from the command line in the Lambda function's project root directory. It is used by the deploy scripts.
+- **.NET 8 SDK**: [Download .NET](https://dotnet.microsoft.com/en-us/download)
+- **Amazon.Lambda.Tools (.NET global tool)**: [Amazon.Lambda.Tools on NuGet](https://www.nuget.org/packages/Amazon.Lambda.Tools/). Install using the command: `dotnet tool install --global Amazon.Lambda.Tools --version 5.10.0`. This tool allows you to pack and deploy a Lambda function from the command line in the Lambda function's project root directory. It is used by the deploy scripts.
 - **Docker and docker-compose**: We use Docker to run the LocalStack container. [Install Docker](https://docs.docker.com/engine/install/) and [docker-compose](https://docs.docker.com/compose/).
 - **awslocal CLI**: [awslocal CLI on GitHub](https://github.com/localstack/awscli-local). It's a thin wrapper around the AWS command line interface for use with LocalStack.
 - **AWS CLI**: [Install AWS CLI](https://docs.aws.amazon.com/cli/latest/userguide/getting-started-install.html). This is used by the deploy scripts.
@@ -43,12 +52,22 @@ The entire demo application, including all the provided scripts, is designed to 
 ## Setup and Deployment
 
 1. **Run LocalStack**: Start LocalStack by executing the `docker-compose up` command.
-2. **Deployment Scripts**: Use the deployment scripts `deploy.ps1` (for Windows) or `deploy.sh` (for Linux/Mac) to deploy the application. These scripts offer a series of prompts to guide you through the deployment process:
+2. **Restore packages**: Run `dotnet restore` to restore all NuGet packages using centralized package management.
+3. **Deployment Scripts**: Use the deployment scripts `deploy.ps1` (for Windows) or `deploy.sh` (for Linux/Mac) to deploy the application. These scripts offer a series of prompts to guide you through the deployment process:
    - **Deployment Target**: Choose between deploying to LocalStack or AWS.
    - **AWS Profile**: If deploying to AWS, you'll be prompted to provide an AWS profile.
    - **Operation Selection**: Decide between creating (`deploy`) or deleting (`cleanup`) the AWS resources. If you opt for cleanup, you'll receive a confirmation prompt to ensure you want to delete all resources.
    - **Repackaging Lambda Functions**: If existing packaged Lambda functions are detected, you'll be asked whether you want to repackage them or use the existing packages.
    - **Lambda Function Updates**: If Lambda functions already exist, you'll be prompted to decide if you want to update them.
+
+## Project Structure
+
+The project uses modern .NET development practices:
+
+- **Centralized Package Management**: All package versions are managed in `Directory.Packages.props`
+- **Common Build Properties**: Shared settings in `Directory.Build.props`
+- **Multi-targeting**: Core library supports both .NET 8 and .NET 9
+- **SDK Configuration**: `global.json` ensures consistent .NET SDK version (.NET 9 for latest tooling)
 
 ## Testing
 
@@ -70,9 +89,11 @@ awslocal lambda invoke --function-name profile-service-demo --payload fileb://./
 ```
 
 ### Load Testing
+
 Under the [`scripts`](https://github.com/localstack-dotnet/localstack-serverless-dotnet-demo/tree/master/scripts) folder, you'll find `loadtest.ps1` and `loadtest.sh`. These scripts will prompt you to choose between LocalStack or AWS for testing. They send randomly generated payloads to the Profile API. Approximately 10% of the requests are invalid, allowing you to observe the behavior of invalid requests. The results of the load tests are written to `aggregated_responses.json`.
 
 ### Verifying Resources in LocalStack
+
 For manual testing and verification, you can use the following commands to check if the resources have been correctly created in LocalStack:
 
 - **List all Lambdas:** `awslocal lambda list-functions`
@@ -82,11 +103,23 @@ For manual testing and verification, you can use the following commands to check
 - **List all items in DynamoDB:** `awslocal dynamodb scan --table-name <TABLE_NAME>`
 - **List all messages in SQS:** `awslocal sqs receive-message --queue-url <QUEUE_URL>`
 - **List all files in an S3 bucket:** `awslocal s3 ls s3://<BUCKET_NAME>/`
+
 These commands are useful to ensure that the resources are set up correctly and to verify the state of your application in LocalStack.
 
 > Notes:
-> - These scripts can also be used with actual AWS. Simply replace `awslocal` with `aws` and your profile to the command `--profile <profile-name>`.
+>
+> - These scripts can also be used with actual AWS. Simply replace `awslocal` with `aws` and add your profile to the command `--profile <profile-name>`.
 > - When conducting tests, it's beneficial to have `docker stats` running in a separate terminal. This allows you to observe the Lambda containers in action.
+
+## What's New in v2.0.0-preview1
+
+This demo showcases LocalStack.NET v2.0.0-preview1 features:
+
+- **AWS SDK v4 Compatibility**: Testing compatibility with the latest AWS SDK version
+- **.NET 8/.NET 9 Support**: Full support for modern .NET runtimes
+- **Enhanced Performance**: Improved client initialization and connection handling
+- **Modern Development Practices**: Showcases current best practices for .NET serverless development
+- **Native AOT Ready**: Project structure prepared for Native AOT when LocalStack.NET compatibility is enhanced
 
 ## Feedback and Contributions
 

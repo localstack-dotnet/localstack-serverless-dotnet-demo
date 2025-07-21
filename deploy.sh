@@ -6,7 +6,7 @@ awslocal() {
     export AWS_ACCESS_KEY_ID="test"
     export AWS_SECRET_ACCESS_KEY="test"
     export AWS_DEFAULT_REGION=${DEFAULT_REGION:-${AWS_DEFAULT_REGION:-"eu-central-1"}}
-    local localstack_host=${LOCALSTACK_HOST:-"localhost"}
+    local localstack_host=${LOCALSTACK_HOST:-"localhost.localstack.cloud"}
     local localstack_url="http://$localstack_host:4566"
     aws "$@" --endpoint-url $localstack_url
 }
@@ -44,7 +44,6 @@ fi
 
 # Known project location and artifact path
 profileServicePath="./src/LocalStack.Services.ProfileApi/"
-profileServicePublishPath="./src/LocalStack.Services.ProfileApi/bin/Release/net7.0/publish"
 profileServiceArtifactPath="./artifacts/profile-service.zip"
 
 # Known project location and artifact path for the message handler
@@ -329,24 +328,13 @@ if [ "$lambdaFunctionExists" == "0" ]; then
     fi
 
     if [ "$repackageProfile" == "yes" ]; then
-        docker build -t profileapi-builder -f ./scripts/Dockerfile.ProfileApi .
-        docker run --rm -v "$(pwd)/artifacts:/app/artifacts" profileapi-builder /bin/sh -c \
-            "dotnet publish ./src/LocalStack.Services.ProfileApi \
-        --output ./src/LocalStack.Services.ProfileApi/bin/Release/net7.0/publish \
-        --configuration 'Release' \
-        --framework 'net7.0' \
-        --self-contained true \
-        /p:GenerateRuntimeConfigurationFiles=true \
-        --runtime linux-x64 \
-        /p:StripSymbols=true && \
-    cd ./src/LocalStack.Services.ProfileApi/bin/Release/net7.0/publish && \
-    zip -r /app/artifacts/profile-service.zip ."
-        docker rmi profileapi-builder
+        echo "Packaging profile Lambda function..."
+        dotnet lambda package --project-location $profileServicePath --output-package $profileServiceArtifactPath
     fi
 
     echo "Creating Lambda function..."
     roleArn=$(awsFunc iam get-role --role-name $roleName --query Role.Arn --output text)
-    awsFunc lambda create-function --function-name $functionName --zip-file fileb://$profileServiceArtifactPath --handler bootstrap --runtime provided.al2 --role $roleArn --environment Variables="{DOTNET_ENVIRONMENT=$lambdaDotNetEnv}" --memory-size 256 --timeout 30
+    awsFunc lambda create-function --function-name $functionName --zip-file fileb://$profileServiceArtifactPath --handler "LocalStack.Services.ProfileApi::LocalStack.Services.ProfileApi.Function::FunctionHandler" --runtime dotnet8 --role $roleArn --environment Variables="{DOTNET_ENVIRONMENT=$lambdaDotNetEnv}" --memory-size 256 --timeout 30
 else
     read -p "Lambda function already exists. Do you want to update it? (yes/no):" update
     if [ "$update" == "yes" ]; then
@@ -358,19 +346,8 @@ else
         fi
 
         if [ "$repackageProfile" == "yes" ]; then
-            docker build -t profileapi-builder -f ./scripts/Dockerfile.ProfileApi .
-            docker run --rm -v "$(pwd)/artifacts:/app/artifacts" profileapi-builder /bin/sh -c \
-                "dotnet publish ./src/LocalStack.Services.ProfileApi \
-        --output ./src/LocalStack.Services.ProfileApi/bin/Release/net7.0/publish \
-        --configuration 'Release' \
-        --framework 'net7.0' \
-        --self-contained true \
-        /p:GenerateRuntimeConfigurationFiles=true \
-        --runtime linux-x64 \
-        /p:StripSymbols=true && \
-    cd ./src/LocalStack.Services.ProfileApi/bin/Release/net7.0/publish && \
-    zip -r /app/artifacts/profile-service.zip ."
-            docker rmi profileapi-builder
+            echo "Packaging profile Lambda function..."
+            dotnet lambda package --project-location $profileServicePath --output-package $profileServiceArtifactPath
         fi
 
         echo "Updating Lambda function..."
@@ -398,7 +375,7 @@ if [ "$messageHandlerFunctionExists" == "0" ]; then
 
     echo "Creating message handler Lambda function..."
     roleArn=$(awsFunc iam get-role --role-name $roleName --query Role.Arn --output text)
-    awsFunc lambda create-function --function-name $messageHandlerFunctionName --zip-file fileb://$messageHandlerServiceArtifactPath --handler "LocalStack.Services.MessageHandler::LocalStack.Services.MessageHandler.Function::FunctionHandler" --runtime dotnet6 --role $roleArn --environment Variables="{DOTNET_ENVIRONMENT=$lambdaDotNetEnv}" --memory-size 256 --timeout 30
+    awsFunc lambda create-function --function-name $messageHandlerFunctionName --zip-file fileb://$messageHandlerServiceArtifactPath --handler "LocalStack.Services.MessageHandler::LocalStack.Services.MessageHandler.Function::FunctionHandler" --runtime dotnet8 --role $roleArn --environment Variables="{DOTNET_ENVIRONMENT=$lambdaDotNetEnv}" --memory-size 256 --timeout 30
 
     # Link SQS queue to the Lambda function
     queueUrl=$(awsFunc sqs get-queue-url --queue-name $queueName --query QueueUrl --output text)

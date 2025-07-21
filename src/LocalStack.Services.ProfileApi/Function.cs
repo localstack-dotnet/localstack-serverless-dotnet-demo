@@ -1,6 +1,8 @@
 using Serilog;
 using Serilog.Formatting.Json;
 
+[assembly: LambdaSerializer(typeof(SourceGeneratorLambdaJsonSerializer<LambdaFunctionJsonSerializerContext>))]
+
 namespace LocalStack.Services.ProfileApi;
 
 public class Function
@@ -12,9 +14,8 @@ public class Function
     private static IServiceProvider? ServiceProvider { get; set; }
 
 
-    [RequiresDynamicCode("Calls ProfileService.Function.ConfigureServices(IServiceCollection)")]
-    [RequiresUnreferencedCode("Calls LocalStack.Services.ProfileApi.Function.ConfigureServices(IServiceCollection)")]
-    private static async Task Main()
+    // Static constructor to initialize services for regular Lambda runtime
+    static Function()
     {
         SetEnvironmentVariable("AWS_ENDPOINT_URL", "");
 
@@ -26,13 +27,7 @@ public class Function
             .Build();
 
         var collection = new ServiceCollection();
-
         ServiceProvider = ConfigureServices(collection);
-
-        var handler = FunctionHandler;
-        await LambdaBootstrapBuilder.Create(handler, new SourceGeneratorLambdaJsonSerializer<LambdaFunctionJsonSerializerContext>())
-            .Build()
-            .RunAsync();
     }
 
     public static async Task<IServiceResponse<ProfileModel>> FunctionHandler(ProfileServiceRequest profileServiceRequest, ILambdaContext context)

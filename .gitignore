@@ -254,3 +254,5 @@ artifact
 
 aggregated_responses.json
 response*.json
+
+.vscode

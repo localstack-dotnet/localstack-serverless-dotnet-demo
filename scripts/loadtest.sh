@@ -6,7 +6,7 @@ awslocal() {
     export AWS_ACCESS_KEY_ID="test"
     export AWS_SECRET_ACCESS_KEY="test"
     export AWS_DEFAULT_REGION=${DEFAULT_REGION:-${AWS_DEFAULT_REGION:-"eu-central-1"}}
-    local localstack_host=${LOCALSTACK_HOST:-"localhost"}
+    local localstack_host=${LOCALSTACK_HOST:-"localhost.localstack.cloud"}
     local localstack_url="http://$localstack_host:4566"
     aws "$@" --endpoint-url $localstack_url
 }
