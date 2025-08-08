@@ -1,8 +1,6 @@
 using Serilog;
 using Serilog.Formatting.Json;
 
-[assembly: LambdaSerializer(typeof(SourceGeneratorLambdaJsonSerializer<LambdaFunctionJsonSerializerContext>))]
-
 namespace LocalStack.Services.ProfileApi;
 
 public class Function
@@ -14,8 +12,9 @@ public class Function
     private static IServiceProvider? ServiceProvider { get; set; }
 
 
-    // Static constructor to initialize services for regular Lambda runtime
-    static Function()
+    [RequiresDynamicCode("Calls ProfileService.Function.ConfigureServices(IServiceCollection)")]
+    [RequiresUnreferencedCode("Calls LocalStack.Services.ProfileApi.Function.ConfigureServices(IServiceCollection)")]
+    private static async Task Main()
     {
         SetEnvironmentVariable("AWS_ENDPOINT_URL", "");
 
@@ -27,7 +26,13 @@ public class Function
             .Build();
 
         var collection = new ServiceCollection();
+
         ServiceProvider = ConfigureServices(collection);
+
+        var handler = FunctionHandler;
+        await LambdaBootstrapBuilder.Create(handler, new SourceGeneratorLambdaJsonSerializer<LambdaFunctionJsonSerializerContext>())
+            .Build()
+            .RunAsync();
     }
 
     public static async Task<IServiceResponse<ProfileModel>> FunctionHandler(ProfileServiceRequest profileServiceRequest, ILambdaContext context)
@@ -96,12 +101,12 @@ public class Function
         LoggerConfiguration loggerConfiguration = new LoggerConfiguration()
             .ReadFrom.Configuration(Configuration)
             .WriteTo.Console(new JsonFormatter());
-        
+
         serviceCollection
             .AddLocalStack(Configuration)
-            .AddAWSServiceLocalStack<IAmazonS3>()
-            .AddAWSServiceLocalStack<IAmazonSQS>()
-            .AddAWSServiceLocalStack<IAmazonDynamoDB>()
+            .AddAwsService<IAmazonS3>()
+            .AddAwsService<IAmazonSQS>()
+            .AddAwsService<IAmazonDynamoDB>()
             .AddTransient<IProfileService, ProfileService>()
             .AddTransient<IS3UrlService, S3UrlService>()
             .AddValidatorsFromAssemblyContaining<ProfileServiceRequestValidator>()

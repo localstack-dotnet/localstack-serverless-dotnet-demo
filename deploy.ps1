@@ -17,7 +17,7 @@ if ($target -eq "aws") {
     function awsFunc { aws @args --profile $profileName }
 }
 else {
-    function awsFunc { 
+    function awsFunc {
         $env:AWS_ACCESS_KEY_ID = "test"
         $env:AWS_SECRET_ACCESS_KEY = "test"
         $env:AWS_DEFAULT_REGION = $defaultRegion
@@ -31,7 +31,7 @@ $lambdaDotNetEnv = "Production"
 
 if ($target -eq "localstack") {
     $lambdaDotNetEnv = "Development"
-} 
+}
 
 # Fetch AWS account ID
 $accountID = awsFunc sts get-caller-identity --query Account --output text
@@ -88,13 +88,13 @@ if ($operation -eq "cleanup") {
             awsFunc iam detach-role-policy --role-name $roleName --policy-arn $policyArn
 
             # Only delete customer-managed policies
-            if ($policyArn -like "*:iam::${accountID}:policy/*") { 
+            if ($policyArn -like "*:iam::${accountID}:policy/*") {
                 # Delete the policy
                 Write-Host "Deleting customer-managed policy: $policyArn"
                 awsFunc iam delete-policy --policy-arn $policyArn
             }
         }
-        
+
         Write-Host "Deleting IAM role..."
         awsFunc iam delete-role --role-name $roleName
 
@@ -110,13 +110,13 @@ if ($operation -eq "cleanup") {
 
         foreach ($mapping in $existingMappings) {
             $mappingUUID = $mapping.UUID
-            
+
             if ($mappingUUID) {
                 Write-Host "Deleting event source mapping with UUID: $mappingUUID..."
                 awsFunc lambda delete-event-source-mapping --uuid $mappingUUID
             }
         }
-        
+
 
         # Delete the DynamoDB table
         Write-Host "Deleting DynamoDB table..."
@@ -178,7 +178,7 @@ $tableExists = IsResourceExists "DynamoDB table" $tableName $checkTableCommand
 
 if ($tableExists -eq "0") {
     # Create DynamoDB table
-    Write-Host "Creating DynamoDB table..."    
+    Write-Host "Creating DynamoDB table..."
     awsFunc dynamodb create-table --table-name $tableName --attribute-definitions 'AttributeName=Id,AttributeType=S' --key-schema 'AttributeName=Id,KeyType=HASH' --provisioned-throughput 'ReadCapacityUnits=5,WriteCapacityUnits=5'
 }
 else {
@@ -226,17 +226,17 @@ if ($roleExists -eq "0") {
             }
         )
     }
-    
+
     # Convert policy to JSON
     $assumeRolePolicyJson = $assumeRolePolicy | ConvertTo-Json -Depth 10
-    
+
     # Write to a temporary file
     $tempFile = [System.IO.Path]::GetTempFileName()
     Set-Content -Path $tempFile -Value $assumeRolePolicyJson
-    
+
     # Create the role using the temporary file
     awsFunc iam create-role --role-name $roleName --assume-role-policy-document file://$tempFile
-    
+
     # Optionally, remove the temporary file
     Remove-Item -Path $tempFile
 
@@ -255,7 +255,7 @@ if ($roleExists -eq "0") {
                 )
             }
         )
-    }    
+    }
 
     # Convert policy to JSON
     $permissionPolicyJson = $permissionPolicy | ConvertTo-Json -Depth 10
@@ -308,7 +308,7 @@ if ($lambdaFunctionExists -eq "0") {
     else {
         $repackageProfile = "yes"
     }
-    
+
     if ($repackageProfile -eq "yes") {
         # Package Lambda function
         Write-Host "Packaging profile Lambda function..."
@@ -318,7 +318,7 @@ if ($lambdaFunctionExists -eq "0") {
     # Create Lambda function
     Write-Host "Creating Lambda function..."
     $roleArn = awsFunc iam get-role --role-name $roleName --query Role.Arn --output text
-    awsFunc lambda create-function --function-name $functionName --zip-file fileb://$profileServiceArtifactPath --handler "LocalStack.Services.ProfileApi::LocalStack.Services.ProfileApi.Function::FunctionHandler" --runtime dotnet8 --role $roleArn --environment Variables="{DOTNET_ENVIRONMENT=$lambdaDotNetEnv}" --memory-size 256 --timeout 30
+    awsFunc lambda create-function --function-name $functionName --zip-file fileb://$profileServiceArtifactPath --handler "bootstrap" --runtime dotnet8 --role $roleArn --environment Variables="{DOTNET_ENVIRONMENT=$lambdaDotNetEnv}" --memory-size 256 --timeout 30
 }
 else {
     $update = Read-Host -Prompt "Lambda function already exists. Do you want to update it? (yes/no)"
@@ -331,7 +331,7 @@ else {
         else {
             $repackageProfile = "yes"
         }
-        
+
         if ($repackageProfile -eq "yes") {
             # Package Lambda function
             Write-Host "Packaging profile Lambda function..."
@@ -351,7 +351,7 @@ $checkMessageHandlerLambdaCommand = { awsFunc lambda get-function --function-nam
 $messageHandlerFunctionExists = IsResourceExists "Lambda function (message handler)" $messageHandlerFunctionName $checkMessageHandlerLambdaCommand
 
 if ($messageHandlerFunctionExists -eq "0") {
-    
+
     if (Test-Path $messageHandlerServiceArtifactPath) {
         $repackageMessageHandler = Read-Host -Prompt "Do you want to repackage the message handler Lambda function? Existing zip file detected. (yes/no) (default is 'no')"
         if (-not $repackageMessageHandler) { $repackageMessageHandler = 'no' }
@@ -359,7 +359,7 @@ if ($messageHandlerFunctionExists -eq "0") {
     else {
         $repackageMessageHandler = "yes"
     }
-    
+
     if ($repackageMessageHandler -eq "yes") {
         # Package message handler Lambda function
         Write-Host "Packaging message handler Lambda function..."
@@ -384,7 +384,7 @@ if ($messageHandlerFunctionExists -eq "0") {
     else {
         foreach ($mapping in $existingMappings) {
             $mappingUUID = $mapping.UUID
-    
+
             if ($mappingUUID) {
                 Write-Host "Deleting event source mapping with UUID: $mappingUUID..."
                 awsFunc lambda delete-event-source-mapping --uuid $mappingUUID
@@ -395,8 +395,8 @@ if ($messageHandlerFunctionExists -eq "0") {
             }
         }
     }
-    
-    awsFunc lambda create-event-source-mapping --event-source-arn $queueArn --function-name $messageHandlerFunctionName --batch-size 5 
+
+    awsFunc lambda create-event-source-mapping --event-source-arn $queueArn --function-name $messageHandlerFunctionName --batch-size 5
 }
 else {
     $update = Read-Host -Prompt "Message handler Lambda function already exists. Do you want to update it? (yes/no)"
@@ -409,7 +409,7 @@ else {
         else {
             $repackageMessageHandler = "yes"
         }
-        
+
         if ($repackageMessageHandler -eq "yes") {
             # Package message handler Lambda function
             Write-Host "Packaging message handler Lambda function..."
