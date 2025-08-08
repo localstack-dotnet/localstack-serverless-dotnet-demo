@@ -27,5 +27,7 @@ global using LocalStack.Core.Services;
 global using LocalStack.Core.Services.Profile;
 global using LocalStack.Core.Services.Profile.Models;
 global using Microsoft.Extensions.Logging;
+global using Serilog;
+global using Serilog.Formatting.Json;
 global using static System.Environment;
 global using ILogger = Microsoft.Extensions.Logging.ILogger;

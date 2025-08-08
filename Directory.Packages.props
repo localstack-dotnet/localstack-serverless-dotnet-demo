@@ -1,47 +1,60 @@
 <Project>
-  <PropertyGroup>
-    <ManagePackageVersionsCentrally>true</ManagePackageVersionsCentrally>
-  </PropertyGroup>
-  <ItemGroup>
-    <!-- AWS Lambda packages -->
-    <PackageVersion Include="Amazon.Lambda.Core" Version="2.7.0" />
-    <PackageVersion Include="Amazon.Lambda.RuntimeSupport" Version="1.13.1" />
-    <PackageVersion Include="Amazon.Lambda.Serialization.SystemTextJson" Version="2.4.4" />
-    <PackageVersion Include="Amazon.Lambda.SQSEvents" Version="2.2.0" />
-    <!-- AWS SDK packages - using latest v4 for compatibility with LocalStack.Client 2.0.0-preview1 -->
-    <PackageVersion Include="AWSSDK.Core" Version="4.0.0.16" />
-    <PackageVersion Include="AWSSDK.DynamoDBv2" Version="4.0.3" />
-    <PackageVersion Include="AWSSDK.S3" Version="4.0.6" />
-    <PackageVersion Include="AWSSDK.SQS" Version="4.0.0.15" />
+    <PropertyGroup>
+        <ManagePackageVersionsCentrally>true</ManagePackageVersionsCentrally>
+    </PropertyGroup>
+    <ItemGroup>
+        <!-- AWS Lambda packages -->
+        <PackageVersion Include="Amazon.Lambda.Core" Version="2.7.0"/>
+        <PackageVersion Include="Amazon.Lambda.RuntimeSupport" Version="1.13.1"/>
+        <PackageVersion Include="Amazon.Lambda.Serialization.SystemTextJson" Version="2.4.4"/>
+        <PackageVersion Include="Amazon.Lambda.APIGatewayEvents" Version="2.7.1"/>
+        <PackageVersion Include="Amazon.Lambda.SQSEvents" Version="2.2.0"/>
+        <!-- AWS SDK packages - using latest v4 for compatibility with LocalStack.Client 2.0.0-preview1 -->
+        <PackageVersion Include="AWSSDK.Core" Version="4.0.0.21"/>
+        <PackageVersion Include="AWSSDK.DynamoDBv2" Version="4.0.3.4"/>
+        <PackageVersion Include="AWSSDK.S3" Version="4.0.6.4"/>
+        <PackageVersion Include="AWSSDK.SQS" Version="4.0.0.19"/>
+        <PackageVersion Include="AWS.Messaging" Version="1.0.1"/>
+        <PackageVersion Include="AWS.Messaging.Telemetry.OpenTelemetry" Version="1.0.0"/>
         <!-- Aspire depedencies-->
-    <PackageVersion Include="Aspire.Hosting.AppHost" Version="9.4.0" />
-    <PackageVersion Include="Aspire.Hosting.SqlServer" Version="9.4.0" />
-    <PackageVersion Include="Aspire.Hosting.PostgreSQL" Version="9.4.0" />
-    <PackageVersion Include="Aspire.Hosting.AWS" Version="9.2.6" />
-    <PackageVersion Include="LocalStack.Aspire.Hosting" Version="9.4.0-rc.1" />
-    <!-- LocalStack packages - v2.0.0-preview1 for testing -->
-    <PackageVersion Include="LocalStack.Client" Version="2.0.0" />
-    <PackageVersion Include="LocalStack.Client.Extensions" Version="2.0.0" />
-    <!-- Microsoft Extensions packages -->
-    <PackageVersion Include="Microsoft.Extensions.Configuration.Binder" Version="9.0.7" />
-    <PackageVersion Include="Microsoft.Extensions.Configuration.EnvironmentVariables" Version="9.0.7" />
-    <PackageVersion Include="Microsoft.Extensions.Configuration.Json" Version="9.0.7" />
-    <PackageVersion Include="Microsoft.Extensions.DependencyInjection" Version="9.0.7" />
-    <PackageVersion Include="Microsoft.Extensions.Logging" Version="9.0.7" />
-    <PackageVersion Include="Microsoft.Extensions.Logging.Abstractions" Version="9.0.7" />
-    <PackageVersion Include="Microsoft.Extensions.Options" Version="9.0.7" />
-    <PackageVersion Include="Microsoft.Extensions.Options.ConfigurationExtensions" Version="9.0.7" />
-    <!-- Validation and utility packages -->
-    <PackageVersion Include="FluentValidation" Version="12.0.0" />
-    <PackageVersion Include="FluentValidation.DependencyInjectionExtensions" Version="12.0.0" />
-    <PackageVersion Include="OneOf" Version="3.0.271" />
-    <PackageVersion Include="OneOf.SourceGenerator" Version="3.0.271" />
-    <!-- Logging packages -->
-    <PackageVersion Include="Serilog" Version="4.3.0" />
-    <PackageVersion Include="Serilog.Extensions.Logging" Version="9.0.2" />
-    <PackageVersion Include="Serilog.Settings.Configuration" Version="9.0.0" />
-    <PackageVersion Include="Serilog.Sinks.Console" Version="6.0.0" />
-    <!-- ICU package for ARM64 Lambda -->
-    <PackageVersion Include="Microsoft.ICU.ICU4C.Runtime" Version="72.1.0.3" />
-  </ItemGroup>
+        <PackageVersion Include="Aspire.Hosting.AppHost" Version="9.4.0"/>
+        <PackageVersion Include="Aspire.Hosting.SqlServer" Version="9.4.0"/>
+        <PackageVersion Include="Aspire.Hosting.PostgreSQL" Version="9.4.0"/>
+        <PackageVersion Include="Aspire.Hosting.AWS" Version="9.2.6"/>
+        <PackageVersion Include="LocalStack.Aspire.Hosting" Version="9.4.0-rc.1"/>
+        <!-- LocalStack packages  -->
+        <PackageVersion Include="LocalStack.Client" Version="2.0.0"/>
+        <PackageVersion Include="LocalStack.Client.Extensions" Version="2.0.0"/>
+        <!-- opentelemetry packages -->
+        <PackageVersion Include="OpenTelemetry.Exporter.OpenTelemetryProtocol" Version="1.12.0"/>
+        <PackageVersion Include="OpenTelemetry.Extensions.Hosting" Version="1.12.0"/>
+        <PackageVersion Include="OpenTelemetry.Instrumentation.AspNetCore" Version="1.12.0"/>
+        <PackageVersion Include="OpenTelemetry.Instrumentation.AWS" Version="1.12.0"/>
+        <PackageVersion Include="OpenTelemetry.Instrumentation.AWSLambda" Version="1.12.0"/>
+        <PackageVersion Include="OpenTelemetry.Instrumentation.Http" Version="1.12.0"/>
+        <PackageVersion Include="OpenTelemetry.Instrumentation.Runtime" Version="1.12.0"/>
+        <!-- Microsoft Extensions packages -->
+        <PackageVersion Include="Microsoft.Extensions.Configuration.Binder" Version="9.0.8"/>
+        <PackageVersion Include="Microsoft.Extensions.Configuration.EnvironmentVariables" Version="9.0.8"/>
+        <PackageVersion Include="Microsoft.Extensions.Configuration.Json" Version="9.0.8"/>
+        <PackageVersion Include="Microsoft.Extensions.DependencyInjection" Version="9.0.8"/>
+        <PackageVersion Include="Microsoft.Extensions.Logging" Version="9.0.8"/>
+        <PackageVersion Include="Microsoft.Extensions.Logging.Abstractions" Version="9.0.8"/>
+        <PackageVersion Include="Microsoft.Extensions.Options" Version="9.0.8"/>
+        <PackageVersion Include="Microsoft.Extensions.Options.ConfigurationExtensions" Version="9.0.8"/>
+        <PackageVersion Include="Microsoft.Extensions.Http.Resilience" Version="9.7.0"/>
+        <PackageVersion Include="Microsoft.Extensions.ServiceDiscovery.Dns" Version="9.4.0"/>
+        <!-- Validation and utility packages -->
+        <PackageVersion Include="FluentValidation" Version="12.0.0"/>
+        <PackageVersion Include="FluentValidation.DependencyInjectionExtensions" Version="12.0.0"/>
+        <PackageVersion Include="OneOf" Version="3.0.271"/>
+        <PackageVersion Include="OneOf.SourceGenerator" Version="3.0.271"/>
+        <!-- Logging packages -->
+        <PackageVersion Include="Serilog" Version="4.3.0"/>
+        <PackageVersion Include="Serilog.Extensions.Logging" Version="9.0.2"/>
+        <PackageVersion Include="Serilog.Settings.Configuration" Version="9.0.0"/>
+        <PackageVersion Include="Serilog.Sinks.Console" Version="6.0.0"/>
+        <!-- ICU package for ARM64 Lambda -->
+        <PackageVersion Include="Microsoft.ICU.ICU4C.Runtime" Version="72.1.0.3"/>
+    </ItemGroup>
 </Project>

@@ -48,7 +48,7 @@ public class ProfileService : IProfileService
             return new DynamoDbFailure(reason, _options.Table);
         }
 
-        if (getItemResponse.Item.Count == 0)
+        if (getItemResponse.Item == null || getItemResponse.Item.Count == 0)
         {
             return new NotFound();
         }

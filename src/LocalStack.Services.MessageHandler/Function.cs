@@ -20,7 +20,7 @@ public class Function
 
     public Function()
     {
-        SetEnvironmentVariable("AWS_ENDPOINT_URL", "");
+        SetEnvironmentVariable("AWS_ENDPOINT_URL", ""); // See the related bug https://github.com/localstack-dotnet/localstack-dotnet-client/issues/27
 
         Configuration = new ConfigurationBuilder()
             .SetBasePath(Directory.GetCurrentDirectory())
@@ -39,7 +39,7 @@ public class Function
 
     public async Task<SaveMessageServiceResponse[]> FunctionHandler(SQSEvent @event, ILambdaContext context)
     {
-        using IDisposable? scope = Logger.BeginScope(context.AwsRequestId);
+        using var scope = Logger.BeginScope(context.AwsRequestId);
 
         await WriteVariables(Logger);
 
@@ -59,7 +59,7 @@ public class Function
 
         Logger.LogInformation("Processed message {MessageBody}", message.Body);
 
-        SaveMessageServiceResult saveMessageServiceResult = await MessageService.SaveMessageAsync(message.Body);
+        var saveMessageServiceResult = await MessageService.SaveMessageAsync(message.Body);
 
         return saveMessageServiceResult.Match(
             model => new SaveMessageServiceResponse("SaveMessage", "200", "Success", true, model),
@@ -70,7 +70,7 @@ public class Function
     private ServiceProvider ConfigureServices(IServiceCollection serviceCollection)
     {
         // initialize serilog's logger property with valid configuration
-        LoggerConfiguration loggerConfiguration = new LoggerConfiguration()
+        var loggerConfiguration = new LoggerConfiguration()
             .ReadFrom.Configuration(Configuration)
             .WriteTo.Console(new JsonFormatter());
 
@@ -81,15 +81,15 @@ public class Function
             .AddValidatorsFromAssemblyContaining<ProfileServiceRequestValidator>()
             .Configure<MessageServiceOptions>(Configuration.GetSection("MessageService"))
             .AddLogging(builder => builder.AddSerilog(loggerConfiguration.CreateLogger()));
-                
+
 
         return serviceCollection.BuildServiceProvider();
     }
 
     private async Task WriteVariables(ILogger logger, bool writeEnv = false, bool listResources = false)
     {
-        MessageServiceOptions messageServiceOptions = ServiceProvider.GetRequiredService<IOptions<MessageServiceOptions>>().Value;
-        LocalStackOptions localStackOptions = ServiceProvider.GetRequiredService<IOptions<LocalStackOptions>>().Value;
+        var messageServiceOptions = ServiceProvider.GetRequiredService<IOptions<MessageServiceOptions>>().Value;
+        var localStackOptions = ServiceProvider.GetRequiredService<IOptions<LocalStackOptions>>().Value;
 
         logger.LogInformation("DOTNET_ENVIRONMENT: {DotnetEnv}", DotnetEnv);
         logger.LogInformation("MessageServiceOptions: {@MessageServiceOptions}", messageServiceOptions);
@@ -102,7 +102,7 @@ public class Function
         if (writeEnv)
         {
             // Get all environment variables
-            IDictionary environmentVariables = GetEnvironmentVariables();
+            var environmentVariables = GetEnvironmentVariables();
 
             // Print them to the console
             foreach (DictionaryEntry variable in environmentVariables)
@@ -118,7 +118,7 @@ public class Function
                 var amazonS3 = ServiceProvider.GetRequiredService<IAmazonS3>();
                 var amazonSqs = ServiceProvider.GetRequiredService<IAmazonSQS>();
 
-                ListQueuesResponse listQueuesResponse = await amazonSqs.ListQueuesAsync(new ListQueuesRequest());
+                var listQueuesResponse = await amazonSqs.ListQueuesAsync(new ListQueuesRequest());
 
                 logger.LogInformation("Listing Queues");
                 foreach (var url in listQueuesResponse.QueueUrls)
@@ -131,9 +131,9 @@ public class Function
                 logger.LogInformation("Region: {RegionEndpoint}", amazonSqsConfig.RegionEndpoint);
                 logger.LogInformation("ServiceURL: {ServiceUrl}", amazonSqsConfig.ServiceURL);
 
-                ListBucketsResponse listBucketsResponse = await amazonS3.ListBucketsAsync(new ListBucketsRequest());
+                var listBucketsResponse = await amazonS3.ListBucketsAsync(new ListBucketsRequest());
 
-                foreach (S3Bucket s3Bucket in listBucketsResponse.Buckets)
+                foreach (var s3Bucket in listBucketsResponse.Buckets)
                 {
                     logger.LogInformation("Bucket: {BucketName}", s3Bucket.BucketName);
                 }
