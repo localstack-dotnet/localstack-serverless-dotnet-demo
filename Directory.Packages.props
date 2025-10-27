@@ -17,11 +17,11 @@
         <PackageVersion Include="AWS.Messaging" Version="1.0.1"/>
         <PackageVersion Include="AWS.Messaging.Telemetry.OpenTelemetry" Version="1.0.0"/>
         <!-- Aspire depedencies-->
-        <PackageVersion Include="Aspire.Hosting.AppHost" Version="9.4.0"/>
-        <PackageVersion Include="Aspire.Hosting.SqlServer" Version="9.4.0"/>
-        <PackageVersion Include="Aspire.Hosting.PostgreSQL" Version="9.4.0"/>
+        <PackageVersion Include="Aspire.Hosting.AppHost" Version="9.5.2"/>
+        <PackageVersion Include="Aspire.Hosting.SqlServer" Version="9.5.2"/>
+        <PackageVersion Include="Aspire.Hosting.PostgreSQL" Version="9.5.2"/>
         <PackageVersion Include="Aspire.Hosting.AWS" Version="9.2.6"/>
-        <PackageVersion Include="LocalStack.Aspire.Hosting" Version="9.4.0-rc.1"/>
+        <PackageVersion Include="LocalStack.Aspire.Hosting" Version="9.5.2"/>
         <!-- LocalStack packages  -->
         <PackageVersion Include="LocalStack.Client" Version="2.0.0"/>
         <PackageVersion Include="LocalStack.Client.Extensions" Version="2.0.0"/>

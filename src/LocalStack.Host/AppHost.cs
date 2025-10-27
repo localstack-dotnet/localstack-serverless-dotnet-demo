@@ -3,7 +3,6 @@
 using Amazon;
 using Aspire.Hosting.LocalStack.Container;
 using LocalStack.Host;
-using LocalStack.Host.Lambda;
 
 var builder = DistributedApplication.CreateBuilder(args);
 
@@ -19,14 +18,9 @@ var localstack = builder
         container.LogLevel = LocalStackLogLevel.Debug;
     });
 
-// Temp, will be solved in main https://github.com/Blind-Striker/dotnet-otel-aspire-localstack-demo
-builder.ConfigureSqsEventSourceResources(localstack);
-
 var profileSystemStack = builder
     .AddAWSCDKStack("profile-system-stack-resource", scope => new ProfileSystemStack(scope, "profile-system-stack"))
     .WithReference(awsConfig);
-
-//profileSystemStack.get
 
 profileSystemStack.AddOutput("ProfileBucketName", stack => stack.ProfileBucket.BucketName);
 profileSystemStack.AddOutput("ProfilesTableName", stack => stack.ProfilesTable.TableName);
@@ -35,15 +29,17 @@ profileSystemStack.AddOutput("ProfileQueueUrl", stack => stack.ProfileQueue.Queu
 profileSystemStack.AddOutput("ProfileQueueName", stack => stack.ProfileQueue.QueueName);
 
 // Register Lambda emulators for the two projects
-var profileApiLambda = builder.AddAWSLambdaFunction<Projects.LocalStack_Services_ProfileApi>(
-        "ProfileApiLambda", lambdaHandler: "bootstrap")
+var profileApiLambda = builder
+    .AddAWSLambdaFunction<Projects.LocalStack_Services_ProfileApi>("ProfileApiLambda", lambdaHandler: "bootstrap")
     .WithReference(profileSystemStack)
     .WithEnvironment("ProfileService:Bucket", profileSystemStack.GetOutput("ProfileBucketName"))
     .WithEnvironment("ProfileService:Queue", profileSystemStack.GetOutput("ProfileQueueName"))
     .WithEnvironment("ProfileService:Table", profileSystemStack.GetOutput("ProfilesTableName"));
 
-var messageHandlerLambda = builder.AddAWSLambdaFunction<Projects.LocalStack_Services_MessageHandler>(
-        "MessageHandlerLambda", lambdaHandler: "LocalStack.Services.MessageHandler::LocalStack.Services.MessageHandler.Function::FunctionHandler")
+var messageHandlerLambda = builder
+    .AddAWSLambdaFunction<Projects.LocalStack_Services_MessageHandler>(
+        name: "MessageHandlerLambda",
+        lambdaHandler: "LocalStack.Services.MessageHandler::LocalStack.Services.MessageHandler.Function::FunctionHandler")
     .WithReference(profileSystemStack)
     .WithSQSEventSource(profileSystemStack.GetOutput("ProfileQueueUrl"))
     .WithEnvironment("MessageService:Table", profileSystemStack.GetOutput("ProfilesTableName"));
