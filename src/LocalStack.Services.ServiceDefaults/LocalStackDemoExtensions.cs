@@ -1,28 +1,14 @@
-#pragma warning disable IDE0130
 // ReSharper disable CheckNamespace
-
-using AWS.Messaging.Telemetry.OpenTelemetry;
-using Microsoft.AspNetCore.Builder;
-using Microsoft.AspNetCore.Diagnostics.HealthChecks;
-using Microsoft.Extensions.DependencyInjection;
-using Microsoft.Extensions.Diagnostics.HealthChecks;
-using Microsoft.Extensions.Logging;
-using OpenTelemetry;
-using OpenTelemetry.Instrumentation.AWSLambda;
-using OpenTelemetry.Metrics;
-using OpenTelemetry.Trace;
-
 namespace Microsoft.Extensions.Hosting;
 
-// Adds common .NET Aspire services: service discovery, resilience, health checks, and OpenTelemetry.
-// This project should be referenced by each service project in your solution.
-// To learn more about using this project, see https://aka.ms/dotnet/aspire/service-defaults
 public static class LocalStackDemoExtensions
 {
     public static TBuilder AddServiceDefaults<TBuilder>(this TBuilder builder) where TBuilder : IHostApplicationBuilder
     {
+        builder.ConfigureSerilog();
         builder.ConfigureOpenTelemetry();
         builder.AddDefaultHealthChecks();
+
         builder.Services.AddServiceDiscovery();
         builder.Services.ConfigureHttpClientDefaults(http =>
         {
@@ -36,7 +22,27 @@ public static class LocalStackDemoExtensions
         return builder;
     }
 
-    public static TBuilder ConfigureOpenTelemetry<TBuilder>(this TBuilder builder) where TBuilder : IHostApplicationBuilder
+    public static IHostApplicationBuilder ConfigureSerilog<TBuilder>(this TBuilder builder) where TBuilder : IHostApplicationBuilder
+    {
+        ArgumentNullException.ThrowIfNull(builder);
+
+        builder.Services.AddSerilog(config =>
+        {
+            config.ReadFrom.Configuration(builder.Configuration)
+                .Enrich.FromLogContext()
+                .Enrich.WithProperty("Environment", builder.Environment.EnvironmentName)
+                .WriteTo.Console()
+                .WriteTo.OpenTelemetry(options =>
+                {
+                    options.IncludedData = IncludedData.TraceIdField | IncludedData.SpanIdField;
+                    options.Endpoint = builder.Configuration["OTEL_EXPORTER_OTLP_ENDPOINT"];
+                });
+        });
+
+        return builder;
+    }
+
+    public static IHostApplicationBuilder ConfigureOpenTelemetryLogging<TBuilder>(this TBuilder builder) where TBuilder : IHostApplicationBuilder
     {
         builder.Logging.AddOpenTelemetry(logging =>
         {
@@ -44,12 +50,19 @@ public static class LocalStackDemoExtensions
             logging.IncludeScopes = true;
         });
 
+        return builder;
+    }
+
+    public static TBuilder ConfigureOpenTelemetry<TBuilder>(this TBuilder builder) where TBuilder : IHostApplicationBuilder
+    {
+
         builder.Services.AddOpenTelemetry()
             .WithMetrics(metrics =>
             {
                 metrics.AddAspNetCoreInstrumentation()
                     .AddHttpClientInstrumentation()
-                    .AddRuntimeInstrumentation();
+                    .AddRuntimeInstrumentation()
+                    .AddAWSInstrumentation();
             })
             .WithTracing(tracing =>
             {

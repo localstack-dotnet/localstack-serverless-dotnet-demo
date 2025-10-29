@@ -25,11 +25,6 @@
         <PackageReference Include="Microsoft.Extensions.DependencyInjection" />
         <PackageReference Include="Microsoft.Extensions.Logging" />
         <PackageReference Include="Microsoft.Extensions.Options.ConfigurationExtensions" />
-
-        <PackageReference Include="Serilog" />
-        <PackageReference Include="Serilog.Extensions.Logging" />
-        <PackageReference Include="Serilog.Settings.Configuration" />
-        <PackageReference Include="Serilog.Sinks.Console" />
     </ItemGroup>
     <ItemGroup>
         <None Update="appsettings.json">
@@ -46,5 +41,6 @@
     </ItemGroup>
     <ItemGroup>
         <ProjectReference Include="..\LocalStack.Core\LocalStack.Core.csproj"/>
+        <ProjectReference Include="..\LocalStack.Services.ServiceDefaults\LocalStack.Services.ServiceDefaults.csproj" />
     </ItemGroup>
 </Project>

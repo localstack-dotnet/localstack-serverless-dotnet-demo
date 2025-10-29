@@ -1,9 +1,5 @@
 #pragma warning disable CA2252 // Using 'AddAWSLambdaFunction' requires opting into preview features.
 
-using Amazon;
-using Aspire.Hosting.LocalStack.Container;
-using LocalStack.Host;
-
 var builder = DistributedApplication.CreateBuilder(args);
 
 // Set up a configuration for the AWS .NET SDK
@@ -30,7 +26,9 @@ profileSystemStack.AddOutput("ProfileQueueName", stack => stack.ProfileQueue.Que
 
 // Register Lambda emulators for the two projects
 var profileApiLambda = builder
-    .AddAWSLambdaFunction<Projects.LocalStack_Services_ProfileApi>("ProfileApiLambda", lambdaHandler: "bootstrap")
+    .AddAWSLambdaFunction<Projects.LocalStack_Services_ProfileApi>(
+        name:"ProfileApiLambda",
+        lambdaHandler: "LocalStack.Services.ProfileApi::LocalStack.Services.ProfileApi.Function::FunctionHandler")
     .WithReference(profileSystemStack)
     .WithEnvironment("ProfileService:Bucket", profileSystemStack.GetOutput("ProfileBucketName"))
     .WithEnvironment("ProfileService:Queue", profileSystemStack.GetOutput("ProfileQueueName"))

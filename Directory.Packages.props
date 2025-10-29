@@ -51,9 +51,10 @@
         <PackageVersion Include="OneOf.SourceGenerator" Version="3.0.271"/>
         <!-- Logging packages -->
         <PackageVersion Include="Serilog" Version="4.3.0"/>
-        <PackageVersion Include="Serilog.Extensions.Logging" Version="9.0.2"/>
+        <PackageVersion Include="Serilog.Extensions.Hosting" Version="9.0.0" />
         <PackageVersion Include="Serilog.Settings.Configuration" Version="9.0.0"/>
         <PackageVersion Include="Serilog.Sinks.Console" Version="6.0.0"/>
+        <PackageVersion Include="Serilog.Sinks.OpenTelemetry" Version="4.2.0"/>
         <!-- ICU package for ARM64 Lambda -->
         <PackageVersion Include="Microsoft.ICU.ICU4C.Runtime" Version="72.1.0.3"/>
     </ItemGroup>

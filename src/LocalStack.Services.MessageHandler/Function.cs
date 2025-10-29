@@ -1,53 +1,63 @@
-using Serilog;
-using Serilog.Formatting.Json;
-using ILogger = Microsoft.Extensions.Logging.ILogger;
-
 [assembly: LambdaSerializer(typeof(SourceGeneratorLambdaJsonSerializer<LambdaFunctionJsonSerializerContext>))]
 
 namespace LocalStack.Services.MessageHandler;
 
 public class Function
 {
-    private static readonly string DotnetEnv = GetEnvironmentVariable("DOTNET_ENVIRONMENT") ?? GetEnvironmentVariable("ASPNETCORE_ENVIRONMENT") ?? "Development";
-
-    private IConfiguration Configuration { get; init; }
-
     private IServiceProvider ServiceProvider { get; init; }
+
+    private IHostEnvironment HostEnvironment { get; init; }
 
     private ILogger<Function> Logger { get; init; }
 
     private IMessageService MessageService { get; init; }
 
+    private TracerProvider TracerProvider { get; init; }
+
     public Function()
     {
-        SetEnvironmentVariable("AWS_ENDPOINT_URL", ""); // See the related bug https://github.com/localstack-dotnet/localstack-dotnet-client/issues/27
+        var builder = new HostApplicationBuilder();
 
-        Configuration = new ConfigurationBuilder()
-            .SetBasePath(Directory.GetCurrentDirectory())
-            .AddJsonFile("appsettings.json", true, true)
-            .AddJsonFile($"appsettings.{DotnetEnv}.json", true, true)
-            .AddEnvironmentVariables()
-            .Build();
+        builder.AddServiceDefaults();
 
-        var collection = new ServiceCollection();
+        builder.Services
+            .AddLocalStack(builder.Configuration)
+            .AddAWSServiceLocalStack<IAmazonDynamoDB>()
+            .AddTransient<IMessageService, MessageService>()
+            .AddValidatorsFromAssemblyContaining<ProfileServiceRequestValidator>()
+            .Configure<MessageServiceOptions>(builder.Configuration.GetSection("MessageService"));
 
-        ServiceProvider = ConfigureServices(collection);
+        var host = builder.Build();
 
-        Logger = ServiceProvider.GetRequiredService<ILogger<Function>>();
-        MessageService = ServiceProvider.GetRequiredService<IMessageService>();
+        ServiceProvider = host.Services;
+        HostEnvironment = builder.Environment;
+
+        Logger = host.Services.GetRequiredService<ILogger<Function>>();
+        MessageService = host.Services.GetRequiredService<IMessageService>();
+        TracerProvider = host.Services.GetRequiredService<TracerProvider>();
+
+        LocalStackOptions localStackOptions = host.Services.GetRequiredService<IOptions<LocalStackOptions>>().Value;
+
+        if (localStackOptions.UseLocalStack)
+        {
+            SetEnvironmentVariable("AWS_ENDPOINT_URL", ""); // See the related bug https://github.com/localstack-dotnet/localstack-dotnet-client/issues/27
+        }
     }
 
     public async Task<SaveMessageServiceResponse[]> FunctionHandler(SQSEvent @event, ILambdaContext context)
     {
-        using var scope = Logger.BeginScope(context.AwsRequestId);
+        return await AWSLambdaWrapper.TraceAsync(TracerProvider, async (sqsEvent, lambdaContext) =>
+        {
+            using var scope = Logger.BeginScope(lambdaContext.AwsRequestId);
 
-        await WriteVariables(Logger);
+            await WriteVariables();
 
-        var messageResults = @event.Records.Select(ProcessMessageAsync).ToList();
+            var messageResults = sqsEvent.Records.Select(ProcessMessageAsync).ToList();
 
-        var saveMessageServiceResponses = await Task.WhenAll(messageResults);
+            var saveMessageServiceResponses = await Task.WhenAll(messageResults);
 
-        return saveMessageServiceResponses;
+            return saveMessageServiceResponses;
+        }, @event, context);
     }
 
     private async Task<SaveMessageServiceResponse> ProcessMessageAsync(SQSEvent.SQSMessage message)
@@ -67,36 +77,17 @@ public class Function
             failure => new SaveMessageServiceResponse("SaveMessage", "500", failure.Reason, false, null));
     }
 
-    private ServiceProvider ConfigureServices(IServiceCollection serviceCollection)
-    {
-        // initialize serilog's logger property with valid configuration
-        var loggerConfiguration = new LoggerConfiguration()
-            .ReadFrom.Configuration(Configuration)
-            .WriteTo.Console(new JsonFormatter());
-
-        serviceCollection
-            .AddLocalStack(Configuration)
-            .AddAWSServiceLocalStack<IAmazonDynamoDB>()
-            .AddTransient<IMessageService, MessageService>()
-            .AddValidatorsFromAssemblyContaining<ProfileServiceRequestValidator>()
-            .Configure<MessageServiceOptions>(Configuration.GetSection("MessageService"))
-            .AddLogging(builder => builder.AddSerilog(loggerConfiguration.CreateLogger()));
-
-
-        return serviceCollection.BuildServiceProvider();
-    }
-
-    private async Task WriteVariables(ILogger logger, bool writeEnv = false, bool listResources = false)
+    private async Task WriteVariables(bool writeEnv = false, bool listResources = false)
     {
         var messageServiceOptions = ServiceProvider.GetRequiredService<IOptions<MessageServiceOptions>>().Value;
         var localStackOptions = ServiceProvider.GetRequiredService<IOptions<LocalStackOptions>>().Value;
 
-        logger.LogInformation("DOTNET_ENVIRONMENT: {DotnetEnv}", DotnetEnv);
-        logger.LogInformation("MessageServiceOptions: {@MessageServiceOptions}", messageServiceOptions);
+        Logger.LogInformation("DOTNET_ENVIRONMENT: {DotnetEnv}", HostEnvironment.EnvironmentName);
+        Logger.LogInformation("MessageServiceOptions: {@MessageServiceOptions}", messageServiceOptions);
 
         if (localStackOptions.UseLocalStack)
         {
-            logger.LogInformation("LocalStackOptions: {@LocalStackOptions}", localStackOptions);
+            Logger.LogInformation("LocalStackOptions: {@LocalStackOptions}", localStackOptions);
         }
 
         if (writeEnv)
@@ -107,7 +98,7 @@ public class Function
             // Print them to the console
             foreach (DictionaryEntry variable in environmentVariables)
             {
-                logger.LogInformation("{VariableKey}: {VariableValue}", variable.Key, variable.Value);
+                Logger.LogInformation("{VariableKey}: {VariableValue}", variable.Key, variable.Value);
             }
         }
 
@@ -120,27 +111,27 @@ public class Function
 
                 var listQueuesResponse = await amazonSqs.ListQueuesAsync(new ListQueuesRequest());
 
-                logger.LogInformation("Listing Queues");
+                Logger.LogInformation("Listing Queues");
                 foreach (var url in listQueuesResponse.QueueUrls)
                 {
-                    logger.LogInformation("Queue: {QueueUrl}", url);
+                    Logger.LogInformation("Queue: {QueueUrl}", url);
                 }
 
                 var amazonSqsConfig = (AmazonSQSConfig)amazonSqs.Config;
 
-                logger.LogInformation("Region: {RegionEndpoint}", amazonSqsConfig.RegionEndpoint);
-                logger.LogInformation("ServiceURL: {ServiceUrl}", amazonSqsConfig.ServiceURL);
+                Logger.LogInformation("Region: {RegionEndpoint}", amazonSqsConfig.RegionEndpoint);
+                Logger.LogInformation("ServiceURL: {ServiceUrl}", amazonSqsConfig.ServiceURL);
 
                 var listBucketsResponse = await amazonS3.ListBucketsAsync(new ListBucketsRequest());
 
                 foreach (var s3Bucket in listBucketsResponse.Buckets)
                 {
-                    logger.LogInformation("Bucket: {BucketName}", s3Bucket.BucketName);
+                    Logger.LogInformation("Bucket: {BucketName}", s3Bucket.BucketName);
                 }
             }
             catch (Exception ex)
             {
-                logger.LogError(ex, "Error while listing resources");
+                Logger.LogError(ex, "Error while listing resources");
             }
         }
     }

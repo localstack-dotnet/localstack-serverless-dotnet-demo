@@ -2,5 +2,5 @@
 
 public class MessageServiceOptions
 {
-    public string Table { get; set; }
+    public required string Table { get; init; }
 }

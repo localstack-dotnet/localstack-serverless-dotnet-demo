@@ -2,9 +2,9 @@
 
 public class ProfileServiceOptions
 {
-    public string Bucket { get; set; }
+    public required string Bucket { get; init; }
 
-    public string Queue { get; set; }
+    public required string Queue { get; init; }
 
-    public string Table { get; set; }
+    public required string Table { get; init; }
 }

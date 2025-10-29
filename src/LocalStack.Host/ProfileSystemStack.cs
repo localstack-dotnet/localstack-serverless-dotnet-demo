@@ -1,10 +1,4 @@
-﻿using Amazon.CDK;
-using Amazon.CDK.AWS.DynamoDB;
-using Amazon.CDK.AWS.IAM;
-using Amazon.CDK.AWS.S3;
-using Amazon.CDK.AWS.SQS;
-using Constructs;
-using Attribute = Amazon.CDK.AWS.DynamoDB.Attribute;
+﻿using Attribute = Amazon.CDK.AWS.DynamoDB.Attribute;
 
 namespace LocalStack.Host;
 
