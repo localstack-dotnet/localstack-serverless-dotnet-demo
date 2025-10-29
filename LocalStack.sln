@@ -17,8 +17,6 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "LocalStack.Host", "src\Loca
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "LocalStack.Services.ServiceDefaults", "src\LocalStack.Services.ServiceDefaults\LocalStack.Services.ServiceDefaults.csproj", "{066E392C-BE3F-40C7-AEF5-EF72964B27EB}"
 EndProject
-Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "external", "external", "{FC91E32E-A84B-4F9E-BAFF-0F31B62636DB}"
-EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
