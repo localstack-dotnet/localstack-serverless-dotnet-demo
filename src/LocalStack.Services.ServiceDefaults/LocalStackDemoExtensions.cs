@@ -55,7 +55,6 @@ public static class LocalStackDemoExtensions
 
     public static TBuilder ConfigureOpenTelemetry<TBuilder>(this TBuilder builder) where TBuilder : IHostApplicationBuilder
     {
-
         builder.Services.AddOpenTelemetry()
             .WithMetrics(metrics =>
             {

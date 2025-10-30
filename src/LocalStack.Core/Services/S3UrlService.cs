@@ -11,7 +11,7 @@ public class S3UrlService(IOptions<LocalStackOptions> localStackOptions) : IS3Ur
             return $"http://{_localStackOptions.Config.LocalStackHost}:{_localStackOptions.Config.EdgePort}/{bucket}/{key}";
         }
 
-        var awsRegion = GetEnvironmentVariable("AWS_REGION ") ?? GetEnvironmentVariable("AWS_DEFAULT_REGION");
+        var awsRegion = GetEnvironmentVariable("AWS_REGION") ?? GetEnvironmentVariable("AWS_DEFAULT_REGION");
 
         if (string.IsNullOrWhiteSpace(awsRegion))
         {

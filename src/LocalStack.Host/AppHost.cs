@@ -25,7 +25,7 @@ profileSystemStack.AddOutput("ProfileQueueUrl", stack => stack.ProfileQueue.Queu
 profileSystemStack.AddOutput("ProfileQueueName", stack => stack.ProfileQueue.QueueName);
 
 // Register Lambda emulators for the two projects
-var profileApiLambda = builder
+builder
     .AddAWSLambdaFunction<Projects.LocalStack_Services_ProfileApi>(
         name:"ProfileApiLambda",
         lambdaHandler: "LocalStack.Services.ProfileApi::LocalStack.Services.ProfileApi.Function::FunctionHandler")
@@ -34,13 +34,13 @@ var profileApiLambda = builder
     .WithEnvironment("ProfileService:Queue", profileSystemStack.GetOutput("ProfileQueueName"))
     .WithEnvironment("ProfileService:Table", profileSystemStack.GetOutput("ProfilesTableName"));
 
-var messageHandlerLambda = builder
+builder
     .AddAWSLambdaFunction<Projects.LocalStack_Services_MessageHandler>(
         name: "MessageHandlerLambda",
         lambdaHandler: "LocalStack.Services.MessageHandler::LocalStack.Services.MessageHandler.Function::FunctionHandler")
     .WithReference(profileSystemStack)
     .WithSQSEventSource(profileSystemStack.GetOutput("ProfileQueueUrl"))
-    .WithEnvironment("MessageService:Table", profileSystemStack.GetOutput("ProfilesTableName"));
+    .WithEnvironment("MessageService:Table", profileSystemStack.GetOutput("MessagesTableName"));
 
 // Autoconfigures the LocalStack for both AWS Cloudformation and CDK resources adds LocalStack reference to all resources that uses AWS references
 builder.UseLocalStack(localstack);
