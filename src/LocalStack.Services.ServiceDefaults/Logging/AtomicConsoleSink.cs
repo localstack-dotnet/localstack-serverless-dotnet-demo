@@ -42,7 +42,6 @@ internal sealed class AtomicConsoleSink : ILogEventSink, IDisposable
                     // Write atomically with lock to prevent interleaving
                     lock (_syncRoot)
                     {
-                        // Use WriteLine to ensure proper line termination and buffering
                         _output.Write(formattedMessage);
                         _output.Flush(); // Force immediate flush to underlying stream
                     }
