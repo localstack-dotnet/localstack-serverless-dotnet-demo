@@ -1,126 +1,201 @@
-# Serverless Demo with LocalStack and .NET
+# LocalStack Serverless .NET Demo
 
-This repository showcases a serverless application using .NET 8 with [LocalStack](https://github.com/localstack/localstack), a fully functional local AWS cloud stack and [LocalStack.NET](https://github.com/localstack-dotnet/localstack-dotnet-client) v2.0.0, a thin wrapper around [aws-sdk-net](https://github.com/aws/aws-sdk-net) which automatically configures the target endpoints to use LocalStack for your local cloud application development.
+A reference implementation for building cloud-native serverless applications with .NET Aspire and LocalStack.
+
+Demonstrates:
+
+- [LocalStack.Aspire.Hosting](https://github.com/localstack-dotnet/dotnet-aspire-for-localstack) - .NET Aspire integration for LocalStack
+- [LocalStack.NET](https://github.com/localstack-dotnet/localstack-dotnet-client) v2.0.0 - AWS SDK wrapper for LocalStack
+- [AWS Aspire integrations](https://github.com/aws/integrations-on-dotnet-aspire-for-aws) - Lambda emulator support
+
+## Quick Start
+
+```bash
+git clone https://github.com/localstack-dotnet/localstack-serverless-dotnet-demo.git
+cd localstack-serverless-dotnet-demo
+dotnet run --project src/LocalStack.Host
+```
+
+This starts:
+
+- LocalStack container
+- AWS resource provisioning via CDK (S3, DynamoDB, SQS, IAM)
+- Lambda emulators with pre-configured test requests
+- Distributed tracing and logging
 
 ## Overview
 
-![Demo](https://raw.githubusercontent.com/localstack-dotnet/localstack-serverless-dotnet-demo/master/assets/architecture-non-transparent.drawio.png)
+![Architecture](https://raw.githubusercontent.com/localstack-dotnet/localstack-serverless-dotnet-demo/master/assets/architecture-non-transparent.drawio.png)
 
-The demo consists of two AWS Lambda functions showcasing modern .NET development practices:
+The demo consists of two AWS Lambda functions:
 
-1. **Profile API (.NET 8):**
+### 1. Profile API (.NET 8)
 
-- **Create Profile Operation:**
-  - Creates a user profile in the profiles DynamoDB table.
-  - Decodes and saves a base64 image from the payload to the profile images S3 Bucket.
-  - Sends a success message to the messages SQS.
-- **Get Profile Operation:**
-  - Retrieves the user profile from the profiles DynamoDB table.
+**Create Profile Operation:**
 
-The Profile API is developed using .NET 8 as a standard AWS Lambda function. Native AOT compilation has been temporarily disabled to focus on testing LocalStack.NET v2.0.0-preview1 compatibility. Native AOT support will be re-enabled in future versions once LocalStack.NET has enhanced Native AOT compatibility.
+- Creates a user profile in the profiles DynamoDB table
+- Decodes and saves a base64 image from the payload to the profile images S3 bucket
+- Sends a success message to the messages SQS queue
 
-2. **Message Handler (.NET 8):**
+**Get Profile Operation:**
 
-- Processes the success message from the messages SQS.
-- Saves the success message to the messages DynamoDB table.
+- Retrieves the user profile from the profiles DynamoDB table
 
-The Message Handler is developed using .NET 8 as a standard AWS Lambda with optimized performance.
+### 2. Message Handler (.NET 8)
 
-## Modern .NET Features Showcased
+- Processes success messages from the messages SQS queue
+- Saves the message to the messages DynamoDB table
 
-- **Centralized Package Management**: Using Directory.Build.props and Directory.Packages.props for consistent dependency management
-- **.NET 8**: Stable runtime with excellent performance for serverless scenarios
-- **LocalStack.NET v2.0.0-preview1**: Testing the latest preview with AWS SDK v4 compatibility
-- **Modern AWS SDK v4**: Latest AWS SDK packages with improved performance and features
-- **Future Native AOT Support**: Framework prepared for Native AOT when LocalStack.NET compatibility is enhanced
+**Application Flow:**
+
+1. ProfileApi validates input → Saves to S3 & DynamoDB → Sends SQS message
+2. SQS triggers MessageHandler → Saves to DynamoDB
+3. ProfileApi retrieves profile from DynamoDB
+
+## What This Demonstrates
+
+**LocalStack Integration:**
+
+- **LocalStack.Aspire.Hosting** - Container lifecycle management and configuration
+- **LocalStack.NET v2.0.0** - AWS SDK wrapper with automatic endpoint configuration
+- **Lambda Emulators** - Fast local development with AWS Lambda Test Tool
+
+**Infrastructure as Code:**
+
+- AWS CDK .NET for resource provisioning
+- S3, DynamoDB, SQS, and IAM resources
+- Deployed automatically on startup
+
+**Observability:**
+
+- Distributed tracing with OpenTelemetry
+- Structured logging with Serilog
+- Health checks and metrics
 
 ## Prerequisites
 
-- **.NET 8 SDK**: [Download .NET](https://dotnet.microsoft.com/en-us/download)
-- **Amazon.Lambda.Tools (.NET global tool)**: [Amazon.Lambda.Tools on NuGet](https://www.nuget.org/packages/Amazon.Lambda.Tools/). Install using the command: `dotnet tool install --global Amazon.Lambda.Tools --version 5.10.0`. This tool allows you to pack and deploy a Lambda function from the command line in the Lambda function's project root directory. It is used by the deploy scripts.
-- **Docker and docker-compose**: We use Docker to run the LocalStack container. [Install Docker](https://docs.docker.com/engine/install/) and [docker-compose](https://docs.docker.com/compose/).
-- **awslocal CLI**: [awslocal CLI on GitHub](https://github.com/localstack/awscli-local). It's a thin wrapper around the AWS command line interface for use with LocalStack.
-- **AWS CLI**: [Install AWS CLI](https://docs.aws.amazon.com/cli/latest/userguide/getting-started-install.html). This is used by the deploy scripts.
-- **For Mac/Linux**: `jq` and `zip`
+- [.NET 8 SDK](https://dotnet.microsoft.com/download)
+- [Docker Desktop](https://www.docker.com/products/docker-desktop)
+- [Node.js](https://nodejs.org/) (for AWS CDK)
 
-> **LocalStack** is a fully functional local AWS cloud stack. While it can be installed directly on your machine and accessed via the `localstack` CLI, the recommended approach is to run LocalStack using [Docker](https://docs.docker.com/get-docker/) or [docker-compose](https://docs.docker.com/compose/install/). For this demo, we've provided a `docker-compose` file to easily run LocalStack, but there are other methods to install and run it as well. For detailed installation and setup instructions for LocalStack, please refer to the [official LocalStack installation guide](https://docs.localstack.cloud/getting-started/installation/).
+## Local Development
 
-## Working with actual AWS
-
-The entire demo application, including all the provided scripts, is designed to work seamlessly with both LocalStack and real AWS environments. When executing a script (details on scripts are provided in subsequent sections), you'll be prompted to select your deployment target. Simply choose 'aws' to deploy to your actual AWS account. Ensure you have the necessary AWS credentials and configurations set up before deploying to AWS.
-
-## Setup and Deployment
-
-1. **Run LocalStack**: Start LocalStack by executing the `docker-compose up` command.
-2. **Restore packages**: Run `dotnet restore` to restore all NuGet packages using centralized package management.
-3. **Deployment Scripts**: Use the deployment scripts `deploy.ps1` (for Windows) or `deploy.sh` (for Linux/Mac) to deploy the application. These scripts offer a series of prompts to guide you through the deployment process:
-   - **Deployment Target**: Choose between deploying to LocalStack or AWS.
-   - **AWS Profile**: If deploying to AWS, you'll be prompted to provide an AWS profile.
-   - **Operation Selection**: Decide between creating (`deploy`) or deleting (`cleanup`) the AWS resources. If you opt for cleanup, you'll receive a confirmation prompt to ensure you want to delete all resources.
-   - **Repackaging Lambda Functions**: If existing packaged Lambda functions are detected, you'll be asked whether you want to repackage them or use the existing packages.
-   - **Lambda Function Updates**: If Lambda functions already exist, you'll be prompted to decide if you want to update them.
-
-## Project Structure
-
-The project uses modern .NET development practices:
-
-- **Centralized Package Management**: All package versions are managed in `Directory.Packages.props`
-- **Common Build Properties**: Shared settings in `Directory.Build.props`
-- **Multi-targeting**: Core library supports both .NET 8 and .NET 9
-- **SDK Configuration**: `global.json` ensures consistent .NET SDK version (.NET 9 for latest tooling)
-
-## Testing
-
-### Manual Testing
-
-You can manually test the ProfileApi using the provided JSON files located in [`scripts/testdata`](https://github.com/localstack-dotnet/localstack-serverless-dotnet-demo/tree/master/scripts/testdata). Files prefixed with `profile` contain valid payloads and will yield a success response, while those prefixed with `invalid` contain invalid payloads and will result in a bad request.
-
-Example commands:
+### Running the Application
 
 ```bash
-awslocal lambda invoke --function-name profile-service-demo --payload fileb://./scripts/testdata/profile1.json response.json --log-type Tail
-awslocal lambda invoke --function-name profile-service-demo --payload fileb://./scripts/testdata/invalid1.json response.json --log-type Tail
+dotnet run --project src/LocalStack.Host
 ```
 
-The API response will be written to `response.json` file. You can extract the value of the id field from this file, update the `getprofile.json` file with this ID, and then use the following command to retrieve the saved user:
+### Testing with AWS Lambda Test Tool
+
+The AWS Lambda Test Tool is integrated into the Aspire Dashboard with pre-configured test requests:
+
+1. Open Aspire Dashboard
+2. Navigate to **Resources**
+3. Click **Lambda Test Tool UI** to open lambda test tool
+4. Select a saved request from the dropdown:
+   - **CreateProfile** - Creates a profile with sample data (name, email, base64 image)
+   - **GetProfileById** - Retrieves a profile (update the ID with a created profile)
+5. Click **Execute Function**
+6. View the response and logs
+
+### Viewing Observability Data
+
+**In the Aspire Dashboard:**
+
+- **Logs**: Navigate to the **Structured** tab for each resource
+- **Traces**: Click **Traces** to see end-to-end distributed tracing
+- **Metrics**: View application metrics in the **Metrics** tab
+- **Resources**: Monitor resource health and status
+
+### Verifying Resources (CLI)
+
+You can verify that resources are correctly created in LocalStack:
 
 ```bash
-awslocal lambda invoke --function-name profile-service-demo --payload fileb://./scripts/testdata/getprofile.json response.json --log-type Tail
+# List Lambda functions
+aws lambda list-functions --endpoint-url http://<LOCALSTACK_HOST>
+
+# List S3 buckets
+aws s3api list-buckets --endpoint-url http://<LOCALSTACK_HOST>
+
+# List SQS queues
+aws sqs list-queues --endpoint-url http://<LOCALSTACK_HOST>
+
+# List DynamoDB tables
+aws dynamodb list-tables --endpoint-url http://<LOCALSTACK_HOST>
+
+# Scan DynamoDB table
+aws dynamodb scan --table-name profile-service-demo-table --endpoint-url http://<LOCALSTACK_HOST>
+
+# Check SQS messages
+aws sqs receive-message \
+  --endpoint-url http://<LOCALSTACK_HOST> \
+  --queue-url http://<LOCALSTACK_HOST>/000000000000/profile-service-demo-queue
+
+# List S3 bucket contents
+aws s3 ls s3://profile-service-demo-bucket/ --endpoint-url http://<LOCALSTACK_HOST>
 ```
 
-### Load Testing
+> **Note**: You can replace `<LOCALSTACK_HOST>` with the actual LocalStack host from Aspire Dashboard.
 
-Under the [`scripts`](https://github.com/localstack-dotnet/localstack-serverless-dotnet-demo/tree/master/scripts) folder, you'll find `loadtest.ps1` and `loadtest.sh`. These scripts will prompt you to choose between LocalStack or AWS for testing. They send randomly generated payloads to the Profile API. Approximately 10% of the requests are invalid, allowing you to observe the behavior of invalid requests. The results of the load tests are written to `aggregated_responses.json`.
+## Roadmap
 
-### Verifying Resources in LocalStack
+This project follows a phased development approach:
 
-For manual testing and verification, you can use the following commands to check if the resources have been correctly created in LocalStack:
+### ✅ Phase 1: Foundation (Complete)
 
-- **List all Lambdas:** `awslocal lambda list-functions`
-- **List all S3 buckets:** `awslocal s3api list-buckets`
-- **List all SQS queues:** `awslocal sqs list-queues`
-- **List all DynamoDB tables:** `awslocal dynamodb list-tables`
-- **List all items in DynamoDB:** `awslocal dynamodb scan --table-name <TABLE_NAME>`
-- **List all messages in SQS:** `awslocal sqs receive-message --queue-url <QUEUE_URL>`
-- **List all files in an S3 bucket:** `awslocal s3 ls s3://<BUCKET_NAME>/`
+- Aspire AppHost orchestration
+- LocalStack.Aspire.Hosting integration
+- CDK-based infrastructure provisioning
+- Lambda emulators for fast development loop
+- Distributed tracing and structured logging
 
-These commands are useful to ensure that the resources are set up correctly and to verify the state of your application in LocalStack.
+### 🚧 Phase 2: Full Deployment (In Progress)
 
-> Notes:
->
-> - These scripts can also be used with actual AWS. Simply replace `awslocal` with `aws` and add your profile to the command `--profile <profile-name>`.
-> - When conducting tests, it's beneficial to have `docker stats` running in a separate terminal. This allows you to observe the Lambda containers in action.
+#### Part 1: Cleanup ✅
 
-## What's New in v2.0.0-preview1
+- Removed legacy deployment scripts
 
-This demo showcases LocalStack.NET v2.0.0-preview1 features:
+#### Part 2: Next Steps
 
-- **AWS SDK v4 Compatibility**: Testing compatibility with the latest AWS SDK version
-- **.NET 8/.NET 9 Support**: Full support for modern .NET runtimes
-- **Enhanced Performance**: Improved client initialization and connection handling
-- **Modern Development Practices**: Showcases current best practices for .NET serverless development
-- **Native AOT Ready**: Project structure prepared for Native AOT when LocalStack.NET compatibility is enhanced
+- Real Lambda deployment to LocalStack/AWS
+- API Gateway integration
+- Blazor UI for interactive testing
+- Modular CDK constructs (Core/Compute/API)
 
-## Feedback and Contributions
+### 📋 Phase 3: Production Patterns (Planned)
 
-Feel free to raise issues or submit pull requests if you find any problems or have suggestions for improvements.
+- Comprehensive test suite
+- CI/CD pipelines
+- CloudFormation alternative
+- Advanced scenarios (multi-region, EventBridge, Step Functions)
+
+## Learn More
+
+**Documentation:**
+
+- [.NET Aspire](https://learn.microsoft.com/dotnet/aspire/)
+- [LocalStack](https://docs.localstack.cloud/)
+- [LocalStack.Aspire.Hosting](https://github.com/localstack-dotnet/dotnet-aspire-for-localstack)
+- [AWS Aspire Integrations](https://github.com/aws/integrations-on-dotnet-aspire-for-aws)
+- [LocalStack.NET](https://github.com/localstack-dotnet/localstack-dotnet-client)
+- [AWS CDK .NET Guide](https://docs.aws.amazon.com/cdk/v2/guide/work-with-cdk-csharp.html)
+
+**Example Projects:**
+
+- [LocalStack + .NET Aspire + OpenTelemetry Demo](https://github.com/Blind-Striker/dotnet-otel-aspire-localstack-demo) - Event registration system with distributed tracing
+- [Lambda Playground](https://github.com/localstack-dotnet/dotnet-aspire-for-localstack/tree/master/playground/lambda) - Lambda function examples with Aspire
+- [Provisioning Examples](https://github.com/localstack-dotnet/dotnet-aspire-for-localstack/tree/master/playground/provisioning) - CDK and CloudFormation provisioning patterns
+
+## Contributing
+
+We welcome contributions from the community! Here's how you can get involved:
+
+- Try it out: Clone the repository and test the playground examples
+- Report issues: Share bugs or feature requests via GitHub issues
+- Submit improvements: Pull requests for enhancements and bug fixes
+
+## License
+
+MIT License - see [LICENSE](LICENSE)
