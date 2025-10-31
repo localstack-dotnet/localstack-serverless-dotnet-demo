@@ -28,15 +28,25 @@ public static class LocalStackDemoExtensions
 
         builder.Services.AddSerilog(config =>
         {
-            config.ReadFrom.Configuration(builder.Configuration)
+            var loggerConfig = config.ReadFrom.Configuration(builder.Configuration)
                 .Enrich.FromLogContext()
-                .Enrich.WithProperty("Environment", builder.Environment.EnvironmentName)
-                .WriteTo.Console()
-                .WriteTo.OpenTelemetry(options =>
-                {
-                    options.IncludedData = IncludedData.TraceIdField | IncludedData.SpanIdField;
-                    options.Endpoint = builder.Configuration["OTEL_EXPORTER_OTLP_ENDPOINT"];
-                });
+                .Enrich.WithProperty("Environment", builder.Environment.EnvironmentName);
+
+            // Use AtomicConsole sink in Lambda environments to prevent character-by-character fragmentation
+            if (Environment.GetEnvironmentVariable("AWS_EXECUTION_ENV")?.Contains("aspire.hosting.aws") == true)
+            {
+                loggerConfig.WriteTo.AtomicConsole(outputTemplate: "[{Timestamp:HH:mm:ss} {Level:u3}] {Message:lj}{NewLine}{Exception}");
+            }
+            else
+            {
+                loggerConfig.WriteTo.Console(new JsonFormatter());
+            }
+
+            loggerConfig.WriteTo.OpenTelemetry(options =>
+            {
+                options.IncludedData = IncludedData.TraceIdField | IncludedData.SpanIdField;
+                options.Endpoint = builder.Configuration["OTEL_EXPORTER_OTLP_ENDPOINT"];
+            });
         });
 
         return builder;
@@ -72,7 +82,8 @@ public static class LocalStackDemoExtensions
                     // Add instrumentation for the AWS .NET SDK.
                     .AddAWSInstrumentation()
                     .AddAWSLambdaConfigurations(options => options.DisableAwsXRayContextExtraction = true)
-                    .AddAWSMessagingInstrumentation();
+                    .AddAWSMessagingInstrumentation()
+                    .AddSource("LocalStack.*");
             });
 
         builder.AddOpenTelemetryExporters();

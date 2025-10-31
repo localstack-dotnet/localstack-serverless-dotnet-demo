@@ -10,7 +10,7 @@ public static class ValidationRuleExtensions
             Errors = failures.Select(f => new
             {
                 Property = f.PropertyName,
-                Error = f.ErrorMessage
-            })
+                Error = f.ErrorMessage,
+            }),
         });
 }

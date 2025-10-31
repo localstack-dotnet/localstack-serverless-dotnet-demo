@@ -6,6 +6,7 @@
 [JsonSerializable(typeof(ProfileModel))]
 [JsonSerializable(typeof(IServiceResponse<ProfileModel>))]
 [JsonSerializable(typeof(SQSEvent))]
+[JsonSerializable(typeof(SQSBatchResponse))]
 [JsonSerializable(typeof(SaveMessageServiceResponse))]
 [JsonSerializable(typeof(SaveMessageServiceResponse[]))]
 public partial class LambdaFunctionJsonSerializerContext : JsonSerializerContext

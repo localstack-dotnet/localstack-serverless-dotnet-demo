@@ -55,6 +55,7 @@ public class Function
         return await AWSLambdaWrapper.TraceAsync<ProfileServiceRequest, IServiceResponse<ProfileModel>>(TracerProvider, async (proxyRequest, lambdaContext) =>
         {
             using var scope = Logger.BeginScope(lambdaContext.AwsRequestId);
+            using var activity = LocalStackActivitySource.ActivitySource.StartActivity(nameof(FunctionHandler));
 
             await WriteVariables(proxyRequest);
 
@@ -101,13 +102,18 @@ public class Function
             catch (Exception e)
             {
                 Logger.LogError(e, "Error in function");
+                activity?.AddException(e);
 
                 return new AddProfileServiceResponse(proxyRequest.Operation, "500", e.Message, false, null);
             }
         }, profileServiceRequest, context);
     }
 
-    private async Task WriteVariables(ProfileServiceRequest profileServiceRequest, bool writeEnv = false, bool writePayload = false,
+    private async Task WriteVariables(
+        ProfileServiceRequest profileServiceRequest,
+        bool writeEnv = false,
+        bool writePayload = false,
+        bool writeLocalStackOptions = false,
         bool listResources = false)
     {
         var profileServiceOptions = ServiceProvider.GetRequiredService<IOptions<ProfileServiceOptions>>().Value;
@@ -116,7 +122,7 @@ public class Function
         Logger.LogInformation("DOTNET_ENVIRONMENT: {DotnetEnv}", HostEnvironment.EnvironmentName);
         Logger.LogInformation("ProfileServiceOptions: {@ProfileServiceOptions}", profileServiceOptions);
 
-        if (localStackOptions.UseLocalStack)
+        if (localStackOptions.UseLocalStack && writeLocalStackOptions)
         {
             Logger.LogInformation("LocalStackOptions: {@LocalStackOptions}", localStackOptions);
         }

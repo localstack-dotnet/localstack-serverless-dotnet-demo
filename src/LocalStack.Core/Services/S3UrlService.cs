@@ -6,6 +6,8 @@ public class S3UrlService(IOptions<LocalStackOptions> localStackOptions) : IS3Ur
 
     public string GetS3Url(IAmazonS3 amazonS3, string bucket, string key)
     {
+        using var activity = LocalStackActivitySource.ActivitySource.StartActivity($"{nameof(S3UrlService)}.{nameof(GetS3Url)}");
+
         if (_localStackOptions.UseLocalStack)
         {
             return $"http://{_localStackOptions.Config.LocalStackHost}:{_localStackOptions.Config.EdgePort}/{bucket}/{key}";
