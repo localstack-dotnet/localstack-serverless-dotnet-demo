@@ -256,3 +256,5 @@ aggregated_responses.json
 response*.json
 
 .vscode
+
+internal-docs/

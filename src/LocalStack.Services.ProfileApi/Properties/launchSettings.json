@@ -1,0 +1,28 @@
+{
+  "profiles": {
+    "https": {
+      "commandName": "Project",
+      "dotnetRunMessages": true,
+      "launchBrowser": true,
+      "applicationUrl": "http://localhost:5466",
+      "environmentVariables": {
+        "DOTNET_ENVIRONMENT": "Development"
+      }
+    },
+    "http": {
+      "commandName": "Project",
+      "dotnetRunMessages": true,
+      "launchBrowser": true,
+      "applicationUrl": "https://localhost:7430;http://localhost:5466",
+      "environmentVariables": {
+        "DOTNET_ENVIRONMENT": "Development"
+      }
+    },
+    "Aspire_ProfileApiLambda": {
+      "commandName": "Executable",
+      "executablePath": "dotnet",
+      "commandLineArgs": "exec --depsfile ./LocalStack.Services.ProfileApi.deps.json --runtimeconfig ./LocalStack.Services.ProfileApi.runtimeconfig.json %USERPROFILE%\\.dotnet\\tools\\.store\\amazon.lambda.testtool\\0.11.0\\amazon.lambda.testtool\\0.11.0\\content\\Amazon.Lambda.RuntimeSupport\\net8.0\\Amazon.Lambda.RuntimeSupport.dll LocalStack.Services.ProfileApi::LocalStack.Services.ProfileApi.Function::FunctionHandler",
+      "workingDirectory": ".\\bin\\$(Configuration)\\net8.0"
+    }
+  }
+}

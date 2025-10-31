@@ -30,6 +30,8 @@ public class ProfileService : IProfileService
 
     public async Task<GetProfileServiceResult> GetProfileByIdAsync(Guid id)
     {
+        using var activity = LocalStackActivitySource.ActivitySource.StartActivity($"{nameof(ProfileService)}.{nameof(GetProfileByIdAsync)}");
+
         if (id == Guid.Empty)
         {
             return new ValidationFailed(new ValidationFailure(nameof(id), "Id cannot be empty"));
@@ -37,7 +39,7 @@ public class ProfileService : IProfileService
 
         var key = new Dictionary<string, AttributeValue>()
         {
-            { nameof(ProfileModel.Id), new AttributeValue(id.ToString()) }
+            { nameof(ProfileModel.Id), new AttributeValue(id.ToString()) },
         };
 
         GetItemResponse getItemResponse = await _amazonDynamoDb.GetItemAsync(_options.Table, key);
@@ -48,7 +50,7 @@ public class ProfileService : IProfileService
             return new DynamoDbFailure(reason, _options.Table);
         }
 
-        if (getItemResponse.Item.Count == 0)
+        if (getItemResponse.Item == null || getItemResponse.Item.Count == 0)
         {
             return new NotFound();
         }
@@ -66,6 +68,8 @@ public class ProfileService : IProfileService
 
     public async Task<CreateProfileServiceResult> CreateProfileAsync(AddProfileModel addProfileModel)
     {
+        using var activity = LocalStackActivitySource.ActivitySource.StartActivity($"{nameof(ProfileService)}.{nameof(CreateProfileAsync)}");
+
         ValidationResult validationResult = await _addProfileModelValidator.ValidateAsync(addProfileModel);
 
         if (!validationResult.IsValid)
@@ -98,7 +102,7 @@ public class ProfileService : IProfileService
                 { nameof(ProfileModel.Name), new AttributeValue(addProfileModel.Name) },
                 { nameof(ProfileModel.Email), new AttributeValue(addProfileModel.Email) },
                 { nameof(ProfileModel.ProfilePicUrl), new AttributeValue(s3Url) },
-                { nameof(ProfileModel.CreatedAt), new AttributeValue(createdAt.ToString("O")) }
+                { nameof(ProfileModel.CreatedAt), new AttributeValue(createdAt.ToString("O")) },
             });
 
         if (!putItemResponse.HttpStatusCode.IsSuccessStatusCode())
@@ -118,7 +122,7 @@ public class ProfileService : IProfileService
         var sendMessageRequest = new SendMessageRequest
         {
             QueueUrl = queueUrlResponse.QueueUrl,
-            MessageBody = messageBody
+            MessageBody = messageBody,
         };
 
         SendMessageResponse sendMessageResponse = await _amazonSqs.SendMessageAsync(sendMessageRequest);

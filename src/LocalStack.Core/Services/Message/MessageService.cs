@@ -15,11 +15,13 @@ public class MessageService : IMessageService
 
     public async Task<SaveMessageServiceResult> SaveMessageAsync(string message)
     {
+        using var activity = LocalStackActivitySource.ActivitySource.StartActivity($"{nameof(MessageService)}.{nameof(SaveMessageAsync)}");
+
         if (string.IsNullOrWhiteSpace(message))
         {
             return new ValidationFailed(new ValidationFailure(nameof(message), "message cannot be empty"));
         }
-        
+
         var id = Guid.NewGuid().ToString();
         DateTime createdAt = DateTime.UtcNow;
 
@@ -28,9 +30,9 @@ public class MessageService : IMessageService
             {
                 { nameof(ProfileModel.Id), new AttributeValue(id) },
                 { "Message", new AttributeValue(message) },
-                { nameof(ProfileModel.CreatedAt), new AttributeValue(createdAt.ToString("O")) }
+                { nameof(ProfileModel.CreatedAt), new AttributeValue(createdAt.ToString("O")) },
             });
-        
+
         if (!putItemResponse.HttpStatusCode.IsSuccessStatusCode())
         {
             return new DynamoDbFailure($"Error adding profile to DynamoDb. StatusCode:{putItemResponse.HttpStatusCode}", _options.Table);

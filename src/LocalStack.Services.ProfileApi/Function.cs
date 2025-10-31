@@ -1,147 +1,149 @@
-using Serilog;
-using Serilog.Formatting.Json;
-
 [assembly: LambdaSerializer(typeof(SourceGeneratorLambdaJsonSerializer<LambdaFunctionJsonSerializerContext>))]
 
 namespace LocalStack.Services.ProfileApi;
 
 public class Function
 {
-    private static readonly string DotnetEnv = GetEnvironmentVariable("DOTNET_ENVIRONMENT") ?? GetEnvironmentVariable("ASPNETCORE_ENVIRONMENT") ?? "Development";
+    private IServiceProvider ServiceProvider { get; init; }
 
-    private static IConfiguration? Configuration { get; set; }
+    private IHostEnvironment HostEnvironment { get; init; }
 
-    private static IServiceProvider? ServiceProvider { get; set; }
+    private ILogger<Function> Logger { get; init; }
 
+    private IProfileService ProfileService { get; init; }
 
-    // Static constructor to initialize services for regular Lambda runtime
-    static Function()
+    private IValidator<ProfileServiceRequest> Validator { get; init; }
+
+    private TracerProvider TracerProvider { get; init; }
+
+    public Function()
     {
-        SetEnvironmentVariable("AWS_ENDPOINT_URL", "");
+        var builder = new HostApplicationBuilder();
 
-        Configuration = new ConfigurationBuilder()
-            .SetBasePath(Directory.GetCurrentDirectory())
-            .AddJsonFile("appsettings.json", true, true)
-            .AddJsonFile($"appsettings.{DotnetEnv}.json", true, true)
-            .AddEnvironmentVariables()
-            .Build();
+        builder.AddServiceDefaults();
 
-        var collection = new ServiceCollection();
-        ServiceProvider = ConfigureServices(collection);
-    }
-
-    public static async Task<IServiceResponse<ProfileModel>> FunctionHandler(ProfileServiceRequest profileServiceRequest, ILambdaContext context)
-    {
-        var profileService = ServiceProvider.GetRequiredService<IProfileService>();
-        var logger = ServiceProvider.GetRequiredService<ILogger<Function>>();
-        var validator = ServiceProvider.GetRequiredService<IValidator<ProfileServiceRequest>>();
-
-        using IDisposable? scope = logger.BeginScope(context.AwsRequestId);
-
-        await WriteVariables(profileServiceRequest, logger);
-
-        try
-        {
-            ValidationResult validationResult = await validator.ValidateAsync(profileServiceRequest);
-
-            if (!validationResult.IsValid)
-            {
-                return new AddProfileServiceResponse(profileServiceRequest.Operation, "400", validationResult.Errors.ToJson(), false, null);
-            }
-
-            var operation = profileServiceRequest.Operation;
-
-            switch (operation)
-            {
-                case "CreateProfile":
-                    AddProfileModel addProfile = JsonSerializer.Deserialize(profileServiceRequest.Payload, LambdaFunctionJsonSerializerContext.Default.AddProfileModel)!;
-                    CreateProfileServiceResult createProfileServiceResult = await profileService.CreateProfileAsync(addProfile);
-
-                    return createProfileServiceResult.Match(
-                        model => new AddProfileServiceResponse(operation, "200", "Created", true, model),
-                        validationFailed => new AddProfileServiceResponse(operation, "400", validationFailed.Errors.ToJson(), false, null),
-                        awsFailure => new AddProfileServiceResponse(operation, "500", awsFailure.Reason, false, null));
-                case "GetProfile":
-                    var parsed = Guid.TryParse(profileServiceRequest.Payload, out Guid profileId);
-
-                    if (!parsed)
-                    {
-                        return new GetProfileServiceResponse(operation, "400", "Invalid Profile Id", false, null);
-                    }
-
-                    GetProfileServiceResult getProfileServiceResult = await profileService.GetProfileByIdAsync(profileId);
-
-                    return getProfileServiceResult.Match(
-                        model => new GetProfileServiceResponse(operation, "200", "Success", true, model),
-                        failed => new GetProfileServiceResponse(operation, "400", failed.Errors.ToJson(), false, null),
-                        _ => new GetProfileServiceResponse(operation, "404", "Not Found", false, null),
-                        failure => new GetProfileServiceResponse(operation, "500", failure.Reason, false, null));
-                default:
-                    return new AddProfileServiceResponse(operation, "400", "Invalid Operation", false, null);
-            }
-        }
-        catch (Exception e)
-        {
-            logger.LogError(e, "Error in function");
-
-            return new AddProfileServiceResponse(profileServiceRequest.Operation, "500", e.Message, false, null);
-        }
-    }
-
-    [RequiresDynamicCode("Calls Microsoft.Extensions.DependencyInjection.ServiceCollectionContainerBuilderExtensions.BuildServiceProvider()")]
-    [RequiresUnreferencedCode("Calls Microsoft.Extensions.DependencyInjection.OptionsConfigurationServiceCollectionExtensions.Configure<TOptions>(IConfiguration)")]
-    private static ServiceProvider ConfigureServices(IServiceCollection serviceCollection)
-    {
-        // initialize serilog's logger property with valid configuration
-        LoggerConfiguration loggerConfiguration = new LoggerConfiguration()
-            .ReadFrom.Configuration(Configuration)
-            .WriteTo.Console(new JsonFormatter());
-        
-        serviceCollection
-            .AddLocalStack(Configuration)
-            .AddAWSServiceLocalStack<IAmazonS3>()
-            .AddAWSServiceLocalStack<IAmazonSQS>()
-            .AddAWSServiceLocalStack<IAmazonDynamoDB>()
+        builder.Services
+            .AddLocalStack(builder.Configuration)
+            .AddAwsService<IAmazonS3>()
+            .AddAwsService<IAmazonSQS>()
+            .AddAwsService<IAmazonDynamoDB>()
             .AddTransient<IProfileService, ProfileService>()
             .AddTransient<IS3UrlService, S3UrlService>()
             .AddValidatorsFromAssemblyContaining<ProfileServiceRequestValidator>()
-            .Configure<ProfileServiceOptions>(Configuration.GetSection("ProfileService"))
-            .AddLogging(builder => builder.AddSerilog(loggerConfiguration.CreateLogger()));
+            .Configure<ProfileServiceOptions>(builder.Configuration.GetSection("ProfileService"));
 
-        return serviceCollection.BuildServiceProvider();
-    }
+        var host = builder.Build();
 
-    private static async Task WriteVariables(ProfileServiceRequest profileServiceRequest, ILogger logger, bool writeEnv = false, bool writePayload = false,
-        bool listResources = false)
-    {
-        ProfileServiceOptions profileServiceOptions = ServiceProvider.GetRequiredService<IOptions<ProfileServiceOptions>>().Value;
-        LocalStackOptions localStackOptions = ServiceProvider.GetRequiredService<IOptions<LocalStackOptions>>().Value;
+        ServiceProvider = host.Services;
+        HostEnvironment = builder.Environment;
 
-        logger.LogInformation("DOTNET_ENVIRONMENT: {DotnetEnv}", DotnetEnv);
-        logger.LogInformation("ProfileServiceOptions: {@ProfileServiceOptions}", profileServiceOptions);
+        Logger = host.Services.GetRequiredService<ILogger<Function>>();
+        ProfileService = ServiceProvider.GetRequiredService<IProfileService>();
+        Validator = ServiceProvider.GetRequiredService<IValidator<ProfileServiceRequest>>();
+        TracerProvider = host.Services.GetRequiredService<TracerProvider>();
+
+        LocalStackOptions localStackOptions = host.Services.GetRequiredService<IOptions<LocalStackOptions>>().Value;
 
         if (localStackOptions.UseLocalStack)
         {
-            logger.LogInformation("LocalStackOptions: {@LocalStackOptions}", localStackOptions);
+            SetEnvironmentVariable("AWS_ENDPOINT_URL", ""); // See the related bug https://github.com/localstack-dotnet/localstack-dotnet-client/issues/27
+        }
+    }
+
+    public async Task<IServiceResponse<ProfileModel>> FunctionHandler(ProfileServiceRequest profileServiceRequest, ILambdaContext context)
+    {
+        return await AWSLambdaWrapper.TraceAsync<ProfileServiceRequest, IServiceResponse<ProfileModel>>(TracerProvider, async (proxyRequest, lambdaContext) =>
+        {
+            using var scope = Logger.BeginScope(lambdaContext.AwsRequestId);
+            using var activity = LocalStackActivitySource.ActivitySource.StartActivity(nameof(FunctionHandler));
+
+            await WriteVariables(proxyRequest);
+
+            try
+            {
+                var validationResult = await Validator.ValidateAsync(proxyRequest);
+
+                if (!validationResult.IsValid)
+                {
+                    return new AddProfileServiceResponse(proxyRequest.Operation, "400", validationResult.Errors.ToJson(), false, null);
+                }
+
+                var operation = proxyRequest.Operation;
+
+                switch (operation)
+                {
+                    case "CreateProfile":
+                        var addProfile = JsonSerializer.Deserialize(proxyRequest.Payload, LambdaFunctionJsonSerializerContext.Default.AddProfileModel)!;
+                        var createProfileServiceResult = await ProfileService.CreateProfileAsync(addProfile);
+
+                        return createProfileServiceResult.Match(
+                            model => new AddProfileServiceResponse(operation, "200", "Created", true, model),
+                            validationFailed => new AddProfileServiceResponse(operation, "400", validationFailed.Errors.ToJson(), false, null),
+                            awsFailure => new AddProfileServiceResponse(operation, "500", awsFailure.Reason, false, null));
+                    case "GetProfile":
+                        var parsed = Guid.TryParse(proxyRequest.Payload, out var profileId);
+
+                        if (!parsed)
+                        {
+                            return new GetProfileServiceResponse(operation, "400", "Invalid Profile Id", false, null);
+                        }
+
+                        var getProfileServiceResult = await ProfileService.GetProfileByIdAsync(profileId);
+
+                        return getProfileServiceResult.Match(
+                            model => new GetProfileServiceResponse(operation, "200", "Success", true, model),
+                            failed => new GetProfileServiceResponse(operation, "400", failed.Errors.ToJson(), false, null),
+                            _ => new GetProfileServiceResponse(operation, "404", "Not Found", false, null),
+                            failure => new GetProfileServiceResponse(operation, "500", failure.Reason, false, null));
+                    default:
+                        return new AddProfileServiceResponse(operation, "400", "Invalid Operation", false, null);
+                }
+            }
+            catch (Exception e)
+            {
+                Logger.LogError(e, "Error in function");
+                activity?.AddException(e);
+
+                return new AddProfileServiceResponse(proxyRequest.Operation, "500", e.Message, false, null);
+            }
+        }, profileServiceRequest, context);
+    }
+
+    private async Task WriteVariables(
+        ProfileServiceRequest profileServiceRequest,
+        bool writeEnv = false,
+        bool writePayload = false,
+        bool writeLocalStackOptions = false,
+        bool listResources = false)
+    {
+        var profileServiceOptions = ServiceProvider.GetRequiredService<IOptions<ProfileServiceOptions>>().Value;
+        var localStackOptions = ServiceProvider.GetRequiredService<IOptions<LocalStackOptions>>().Value;
+
+        Logger.LogInformation("DOTNET_ENVIRONMENT: {DotnetEnv}", HostEnvironment.EnvironmentName);
+        Logger.LogInformation("ProfileServiceOptions: {@ProfileServiceOptions}", profileServiceOptions);
+
+        if (localStackOptions.UseLocalStack && writeLocalStackOptions)
+        {
+            Logger.LogInformation("LocalStackOptions: {@LocalStackOptions}", localStackOptions);
         }
 
-        logger.LogInformation("Operation: {Operation}", profileServiceRequest.Operation);
+        Logger.LogInformation("Operation: {Operation}", profileServiceRequest.Operation);
 
         if (writePayload)
         {
             var payload = JsonSerializer.Serialize(profileServiceRequest, LambdaFunctionJsonSerializerContext.Default.ProfileServiceRequest);
-            logger.LogInformation("Payload: {Payload}", payload);
+            Logger.LogInformation("Payload: {Payload}", payload);
         }
 
         if (writeEnv)
         {
             // Get all environment variables
-            IDictionary environmentVariables = GetEnvironmentVariables();
+            var environmentVariables = GetEnvironmentVariables();
 
             // Print them to the console
             foreach (DictionaryEntry variable in environmentVariables)
             {
-                logger.LogInformation("{VariableKey}: {VariableValue}", variable.Key, variable.Value);
+                Logger.LogInformation("{VariableKey}: {VariableValue}", variable.Key, variable.Value);
             }
         }
 
@@ -152,29 +154,29 @@ public class Function
                 var amazonS3 = ServiceProvider.GetRequiredService<IAmazonS3>();
                 var amazonSqs = ServiceProvider.GetRequiredService<IAmazonSQS>();
 
-                ListQueuesResponse listQueuesResponse = await amazonSqs.ListQueuesAsync(new ListQueuesRequest());
+                var listQueuesResponse = await amazonSqs.ListQueuesAsync(new ListQueuesRequest());
 
-                logger.LogInformation("Listing Queues");
+                Logger.LogInformation("Listing Queues");
                 foreach (var url in listQueuesResponse.QueueUrls)
                 {
-                    logger.LogInformation("Queue: {QueueUrl}", url);
+                    Logger.LogInformation("Queue: {QueueUrl}", url);
                 }
 
                 var amazonSqsConfig = (AmazonSQSConfig)amazonSqs.Config;
 
-                logger.LogInformation("Region: {RegionEndpoint}", amazonSqsConfig.RegionEndpoint);
-                logger.LogInformation("ServiceURL: {ServiceUrl}", amazonSqsConfig.ServiceURL);
+                Logger.LogInformation("Region: {RegionEndpoint}", amazonSqsConfig.RegionEndpoint);
+                Logger.LogInformation("ServiceURL: {ServiceUrl}", amazonSqsConfig.ServiceURL);
 
-                ListBucketsResponse listBucketsResponse = await amazonS3.ListBucketsAsync(new ListBucketsRequest());
+                var listBucketsResponse = await amazonS3.ListBucketsAsync(new ListBucketsRequest());
 
-                foreach (S3Bucket s3Bucket in listBucketsResponse.Buckets)
+                foreach (var s3Bucket in listBucketsResponse.Buckets)
                 {
-                    logger.LogInformation("Bucket: {BucketName}", s3Bucket.BucketName);
+                    Logger.LogInformation("Bucket: {BucketName}", s3Bucket.BucketName);
                 }
             }
-            catch(Exception ex)
+            catch (Exception ex)
             {
-                logger.LogError(ex, "Error while listing resources");
+                Logger.LogError(ex, "Error while listing resources");
             }
         }
     }

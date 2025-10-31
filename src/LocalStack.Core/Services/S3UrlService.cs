@@ -1,22 +1,19 @@
 ﻿namespace LocalStack.Core.Services;
 
-public class S3UrlService : IS3UrlService
+public class S3UrlService(IOptions<LocalStackOptions> localStackOptions) : IS3UrlService
 {
-    private readonly LocalStackOptions _localStackOptions;
-
-    public S3UrlService(IOptions<LocalStackOptions> localStackOptions)
-    {
-        _localStackOptions = localStackOptions.Value;
-    }
+    private readonly LocalStackOptions _localStackOptions = localStackOptions.Value;
 
     public string GetS3Url(IAmazonS3 amazonS3, string bucket, string key)
     {
+        using var activity = LocalStackActivitySource.ActivitySource.StartActivity($"{nameof(S3UrlService)}.{nameof(GetS3Url)}");
+
         if (_localStackOptions.UseLocalStack)
         {
-            return $"http://localhost:4566/{bucket}/{key}";
+            return $"http://{_localStackOptions.Config.LocalStackHost}:{_localStackOptions.Config.EdgePort}/{bucket}/{key}";
         }
 
-        string? awsRegion = GetEnvironmentVariable("AWS_REGION ") ?? GetEnvironmentVariable("AWS_DEFAULT_REGION");
+        var awsRegion = GetEnvironmentVariable("AWS_REGION") ?? GetEnvironmentVariable("AWS_DEFAULT_REGION");
 
         if (string.IsNullOrWhiteSpace(awsRegion))
         {

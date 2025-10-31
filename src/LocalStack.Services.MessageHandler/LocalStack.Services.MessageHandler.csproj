@@ -1,10 +1,13 @@
 <Project Sdk="Microsoft.NET.Sdk">
     <PropertyGroup>
-        <TargetFramework>net8.0</TargetFramework>
+        <TargetFramework>$(DefaultTargetFramework)</TargetFramework>
         <GenerateRuntimeConfigurationFiles>true</GenerateRuntimeConfigurationFiles>
         <AWSProjectType>Lambda</AWSProjectType>
+        <!-- This property makes the build directory similar to a publish directory and helps the AWS .NET Lambda Mock Test Tool find project dependencies. -->
+        <CopyLocalLockFileAssemblies>true</CopyLocalLockFileAssemblies>
         <!-- Generate ready to run images during publishing to improve cold start time. -->
         <PublishReadyToRun>true</PublishReadyToRun>
+        <IsPackable>false</IsPackable>
     </PropertyGroup>
     <ItemGroup>
         <PackageReference Include="Amazon.Lambda.Core" />
@@ -22,11 +25,6 @@
         <PackageReference Include="Microsoft.Extensions.DependencyInjection" />
         <PackageReference Include="Microsoft.Extensions.Logging" />
         <PackageReference Include="Microsoft.Extensions.Options.ConfigurationExtensions" />
-
-        <PackageReference Include="Serilog" />
-        <PackageReference Include="Serilog.Extensions.Logging" />
-        <PackageReference Include="Serilog.Settings.Configuration" />
-        <PackageReference Include="Serilog.Sinks.Console" />
     </ItemGroup>
     <ItemGroup>
         <None Update="appsettings.json">
@@ -43,5 +41,6 @@
     </ItemGroup>
     <ItemGroup>
         <ProjectReference Include="..\LocalStack.Core\LocalStack.Core.csproj"/>
+        <ProjectReference Include="..\LocalStack.Services.ServiceDefaults\LocalStack.Services.ServiceDefaults.csproj" />
     </ItemGroup>
 </Project>
