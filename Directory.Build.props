@@ -1,7 +1,9 @@
 <Project>
 
   <PropertyGroup>
-    <DefaultTargetFramework>net8.0</DefaultTargetFramework>
+    <DefaultTargetFramework>net10.0</DefaultTargetFramework>
+    <LangVersion>latest</LangVersion>
+    <ImplicitUsings>enable</ImplicitUsings>
     <!-- Enable Central Package Management -->
     <ManagePackageVersionsCentrally>true</ManagePackageVersionsCentrally>
     <CentralPackageTransitivePinningEnabled>true</CentralPackageTransitivePinningEnabled>
