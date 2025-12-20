@@ -29,7 +29,7 @@ This starts:
 
 The demo consists of two AWS Lambda functions:
 
-### 1. Profile API (.NET 8)
+### 1. Profile API (.NET 10)
 
 **Create Profile Operation:**
 
@@ -41,7 +41,7 @@ The demo consists of two AWS Lambda functions:
 
 - Retrieves the user profile from the profiles DynamoDB table
 
-### 2. Message Handler (.NET 8)
+### 2. Message Handler (.NET 10)
 
 - Processes success messages from the messages SQS queue
 - Saves the message to the messages DynamoDB table
@@ -74,7 +74,7 @@ The demo consists of two AWS Lambda functions:
 
 ## Prerequisites
 
-- [.NET 8 SDK](https://dotnet.microsoft.com/download)
+- [.NET 10 SDK](https://dotnet.microsoft.com/download)
 - [Docker Desktop](https://www.docker.com/products/docker-desktop)
 - [Node.js](https://nodejs.org/) (for AWS CDK)
 
@@ -175,7 +175,7 @@ This project follows a phased development approach:
 
 **Documentation:**
 
-- [.NET Aspire](https://learn.microsoft.com/dotnet/aspire/)
+- [.NET Aspire](https://aspire.dev/)
 - [LocalStack](https://docs.localstack.cloud/)
 - [LocalStack.Aspire.Hosting](https://github.com/localstack-dotnet/dotnet-aspire-for-localstack)
 - [AWS Aspire Integrations](https://github.com/aws/integrations-on-dotnet-aspire-for-aws)
