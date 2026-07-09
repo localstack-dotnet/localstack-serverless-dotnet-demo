@@ -32,16 +32,12 @@ public static class LocalStackDemoExtensions
                 .Enrich.FromLogContext()
                 .Enrich.WithProperty("Environment", builder.Environment.EnvironmentName);
 
-            // Use AtomicConsole sink in Lambda environments to prevent character-by-character fragmentation
-            if (Environment.GetEnvironmentVariable("AWS_EXECUTION_ENV")?.Contains("aspire.hosting.aws") == true)
-            {
-                loggerConfig.WriteTo.AtomicConsole(outputTemplate: "[{Timestamp:HH:mm:ss} {Level:u3}] {Message:lj}{NewLine}{Exception}");
-            }
-            else
-            {
-                loggerConfig.WriteTo.Console(new JsonFormatter());
-            }
-
+            // Themed sinks emit one Console.Write per token to apply colours; Aspire's log
+            // capture treats each Write as a separate line, fragmenting log entries in the
+            // dashboard. Disable the theme unconditionally — local terminal output stays
+            // readable, just without colours. See JetBrains/aspire-plugin#557.
+            loggerConfig.WriteTo.Console(theme: ConsoleTheme.None);
+            
             loggerConfig.WriteTo.OpenTelemetry(options =>
             {
                 options.IncludedData = IncludedData.TraceIdField | IncludedData.SpanIdField;

@@ -23,7 +23,6 @@ global using LocalStack.Core.Options;
 global using LocalStack.Core.Services;
 global using LocalStack.Core.Services.Profile;
 global using LocalStack.Core.Services.Profile.Models;
-global using LocalStack.Services.ServiceDefaults.Logging;
 global using Microsoft.Extensions.Hosting;
 global using Microsoft.Extensions.Logging;
 global using OpenTelemetry.Instrumentation.AWSLambda;

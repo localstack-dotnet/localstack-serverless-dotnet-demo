@@ -20,7 +20,6 @@ global using LocalStack.Core.Models;
 global using LocalStack.Core.Options;
 global using LocalStack.Core.Services.Message;
 global using LocalStack.Core.Services.Message.Models;
-global using LocalStack.Services.ServiceDefaults.Logging;
 global using Microsoft.Extensions.DependencyInjection;
 global using Microsoft.Extensions.Hosting;
 global using Microsoft.Extensions.Logging;
